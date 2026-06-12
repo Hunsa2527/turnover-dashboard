@@ -11,56 +11,55 @@
 <style>
   body { font-family: 'IBM Plex Sans Thai', system-ui, -apple-system, sans-serif; }
   .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #f0abce; border-radius: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #fdf2f8; }
   th.sortable { cursor: pointer; user-select: none; }
-  th.sortable:hover { background: #f1f5f9; }
+  th.sortable:hover { background: rgba(236,72,153,0.06); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
+  .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
+  .card-hover:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px rgba(219,39,119,0.35); }
+  @keyframes floatUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .anim { animation: floatUp .5s ease both; }
+  .grad-text { background: linear-gradient(90deg,#db2777,#2563eb); -webkit-background-clip: text; background-clip: text; color: transparent; }
 </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 text-slate-800 min-h-screen">
+<body class="min-h-screen text-slate-800" style="background:
+   radial-gradient(1200px 500px at 0% 0%, rgba(244,114,182,0.18), transparent 55%),
+   radial-gradient(1200px 500px at 100% 0%, rgba(59,130,246,0.16), transparent 55%),
+   linear-gradient(160deg,#fdf2f8 0%,#f5f8ff 45%,#eff6ff 100%);">
 
-<!--
-   ╔═══════════════════════════════════════════════════════════════╗
-   ║  CONFIG — แทนที่ <<CSV_URL>> ด้วย Publish-to-web CSV URL      ║
-   ║  ของ sheet "dashboard_data"                                   ║
-   ║                                                               ║
-   ║  วิธี: ใน Google Sheet → File → Share → Publish to web →     ║
-   ║  เลือก sheet "dashboard_data" + format "CSV" → Publish →     ║
-   ║  copy URL มาวางใน CSV_URL ข้างล่าง                            ║
-   ╚═══════════════════════════════════════════════════════════════╝
--->
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=772640747&single=true&output=csv";
-  const CUTOFF_DATE = "2026-01-02";   // resign_date >= นี้ ถือว่าอยู่ใน scope
+  const CUTOFF_DATE = "2026-01-02";
 </script>
 
 <!-- ───── Header ───── -->
-<header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-  <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+<header class="glass border-b border-pink-200/50 sticky top-0 z-30 shadow-sm">
+  <div class="max-w-[1600px] mx-auto px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold">📊</div>
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style="background:linear-gradient(135deg,#ec4899,#3b82f6);">📊</div>
       <div>
-        <h1 class="text-xl font-bold text-slate-900">Turnover Dashboard</h1>
-        <p class="text-xs text-slate-500">JMT Network — พนักงานลาออก (ตั้งแต่ <span id="cutoff-display"></span>)</p>
+        <h1 class="text-xl font-bold grad-text">Turnover Insights</h1>
+        <p class="text-xs text-slate-500">JMT Network — วิเคราะห์พนักงานลาออก (ตั้งแต่ <span id="cutoff-display"></span>)</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
-        <label class="text-xs font-medium text-indigo-700">👁️ มุมมอง:</label>
-        <select id="view-selector" class="text-sm bg-transparent border-0 focus:ring-0 font-medium text-indigo-900 cursor-pointer">
-          <option value="all">📊 ทั้งหมด</option>
-          <option value="kpi">🔢 KPI ภาพรวม</option>
-          <option value="charts">📈 กราฟ</option>
-          <option value="team">👥 สรุปหัวหน้าทีม</option>
-          <option value="detail">📋 รายละเอียดพนักงาน</option>
+      <div class="flex items-center gap-2 bg-white/70 border border-pink-200 rounded-xl px-3 py-1.5">
+        <label class="text-xs font-medium text-pink-600">👁️ มุมมอง</label>
+        <select id="view-selector" class="text-sm bg-transparent border-0 focus:ring-0 font-medium text-pink-700 cursor-pointer">
+          <option value="all">ทั้งหมด</option>
+          <option value="kpi">KPI ภาพรวม</option>
+          <option value="charts">กราฟ &amp; เชิงลึก</option>
+          <option value="team">สรุปหัวหน้าทีม</option>
+          <option value="detail">รายละเอียดพนักงาน</option>
         </select>
       </div>
-      <div class="flex items-center gap-2 border-l border-slate-200 pl-3">
-        <span class="text-xs text-slate-500">อัปเดตล่าสุด:</span>
-        <span id="last-updated" class="text-xs font-medium text-slate-700">—</span>
+      <div class="hidden sm:flex items-center gap-2 border-l border-pink-200/70 pl-3">
+        <span class="text-xs text-slate-400">อัปเดต</span>
+        <span id="last-updated" class="text-xs font-medium text-slate-600">—</span>
       </div>
-      <button id="refresh-btn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-xs font-medium transition">🔄 Refresh</button>
+      <button id="refresh-btn" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow transition hover:opacity-90" style="background:linear-gradient(135deg,#ec4899,#3b82f6);">🔄 Refresh</button>
     </div>
   </div>
 </header>
@@ -68,129 +67,136 @@
 <main class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
 
   <!-- ───── Filter Bar ───── -->
-  <div class="bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 rounded-xl border border-slate-200/70 p-4 flex flex-wrap items-center gap-3 shadow-sm">
+  <div class="glass rounded-2xl border border-white/60 p-4 flex flex-wrap items-center gap-3 shadow-sm anim">
     <div class="flex items-center gap-2">
-      <label class="text-xs font-medium text-slate-600">ปี:</label>
-      <select id="filter-year" class="text-sm border border-slate-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-        <option value="">ทั้งหมด</option>
-      </select>
+      <label class="text-xs font-medium text-slate-500">ปี</label>
+      <select id="filter-year" class="text-sm border border-pink-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-xs font-medium text-slate-600">เดือน:</label>
-      <select id="filter-month" class="text-sm border border-slate-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-        <option value="">ทั้งหมด</option>
-      </select>
+      <label class="text-xs font-medium text-slate-500">เดือน</label>
+      <select id="filter-month" class="text-sm border border-pink-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-xs font-medium text-slate-600">หัวหน้าทีม:</label>
-      <select id="filter-team" class="text-sm border border-slate-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-w-[160px]">
-        <option value="">ทั้งหมด</option>
-      </select>
+      <label class="text-xs font-medium text-slate-500">หัวหน้าทีม</label>
+      <select id="filter-team" class="text-sm border border-blue-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 min-w-[160px]"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-xs font-medium text-slate-600">Product:</label>
-      <select id="filter-product" class="text-sm border border-slate-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-w-[140px]">
-        <option value="">ทั้งหมด</option>
-      </select>
+      <label class="text-xs font-medium text-slate-500">Product</label>
+      <select id="filter-product" class="text-sm border border-blue-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 min-w-[140px]"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-      <label class="text-xs font-medium text-slate-600">🔍</label>
-      <input id="filter-search" type="search" placeholder="ค้นหา รหัส/ชื่อ/แผนก/ตำแหน่ง..." class="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex-1">
+      <span class="text-sm">🔍</span>
+      <input id="filter-search" type="search" placeholder="ค้นหา รหัส/ชื่อ/แผนก/ตำแหน่ง..." class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 flex-1">
     </div>
-    <button id="clear-filters" class="text-xs text-slate-500 hover:text-slate-800 underline">ล้าง filter</button>
-    <button id="export-csv" class="ml-auto text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md font-medium transition">⬇ Export CSV</button>
+    <button id="clear-filters" class="text-xs text-slate-400 hover:text-pink-600 underline">ล้าง filter</button>
+    <button id="export-csv" class="ml-auto text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition">⬇ Export CSV</button>
   </div>
 
   <!-- ───── KPI Cards ───── -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4" data-section="kpi">
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200/60 p-5 shadow-sm hover:shadow-md transition">
-      <div class="flex items-center gap-2 text-xs font-medium text-blue-700 uppercase tracking-wider">
-        <span class="w-2 h-2 rounded-full bg-blue-500"></span> รวมลาออก
-      </div>
-      <div class="mt-2 flex items-baseline gap-2">
-        <span id="kpi-total" class="text-3xl font-bold text-blue-900">—</span>
-        <span class="text-sm text-blue-600/70">คน</span>
-      </div>
-      <div class="mt-1 text-xs text-blue-600/60" id="kpi-total-sub">—</div>
+  <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 anim" data-section="kpi">
+    <!-- total -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">👥 รวมลาออก</div>
+      <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-total" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">คน</span></div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-total-sub">—</div>
     </div>
-    <div class="bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-xl border border-rose-200/60 p-5 shadow-sm hover:shadow-md transition">
-      <div class="flex items-center gap-2 text-xs font-medium text-rose-700 uppercase tracking-wider">
-        <span class="w-2 h-2 rounded-full bg-rose-500"></span> ทีมกระทบมากสุด
-      </div>
-      <div id="kpi-top-team" class="mt-2 text-xl font-bold text-rose-900 truncate">—</div>
-      <div class="mt-1 text-xs text-rose-600/70" id="kpi-top-team-count">—</div>
+    <!-- avg tenure -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#ec4899,#db2777);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">⏳ อายุงานเฉลี่ย</div>
+      <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-tenure" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">เดือน</span></div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-tenure-sub">ก่อนตัดสินใจลาออก</div>
     </div>
-    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl border border-emerald-200/60 p-5 shadow-sm hover:shadow-md transition">
-      <div class="flex items-center gap-2 text-xs font-medium text-emerald-700 uppercase tracking-wider">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Product กระทบมากสุด
-      </div>
-      <div id="kpi-top-product" class="mt-2 text-xl font-bold text-emerald-900 truncate">—</div>
-      <div class="mt-1 text-xs text-emerald-600/70" id="kpi-top-product-count">—</div>
+    <!-- early attrition -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#f43f5e,#e11d48);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">⚡ ลาออกเร็ว</div>
+      <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-early" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">%</span></div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-early-sub">อยู่ไม่ถึง 6 เดือน</div>
+    </div>
+    <!-- peak month -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">📅 เดือนสูงสุด</div>
+      <div id="kpi-peak" class="mt-2 text-xl font-bold truncate">—</div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-peak-sub">—</div>
+    </div>
+    <!-- top team -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#d946ef,#a21caf);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🎯 ทีมกระทบสูงสุด</div>
+      <div id="kpi-top-team" class="mt-2 text-lg font-bold leading-tight truncate">—</div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-top-team-count">—</div>
+    </div>
+    <!-- top product -->
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
+      <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">📦 Product สูงสุด</div>
+      <div id="kpi-top-product" class="mt-2 text-lg font-bold leading-tight truncate">—</div>
+      <div class="mt-1 text-[11px] opacity-80" id="kpi-top-product-count">—</div>
     </div>
   </div>
 
-  <!-- ───── Charts Row ───── -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4" data-section="charts">
-    <div class="bg-gradient-to-br from-indigo-50/60 to-white rounded-xl border border-indigo-200/50 p-5 shadow-sm lg:col-span-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-          <span class="w-1 h-4 bg-indigo-500 rounded-full"></span> ลาออกต่อเดือน
-        </h3>
-        <span class="text-xs text-indigo-500/70">(YYYY-MM ตาม วันที่ลาออก)</span>
+  <!-- ───── Charts & Insights ───── -->
+  <div class="space-y-4 anim" data-section="charts">
+    <!-- row 1 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-8">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ec4899,#3b82f6)"></span> แนวโน้มการลาออกต่อเดือน</h3>
+          <span id="trend-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">—</span>
+        </div>
+        <div class="h-[290px]"><canvas id="chart-monthly"></canvas></div>
       </div>
-      <div class="h-[280px]"><canvas id="chart-monthly"></canvas></div>
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-pink-500"></span> การกระจายอายุงาน</h3>
+        <div class="h-[290px]"><canvas id="chart-tenure"></canvas></div>
+      </div>
     </div>
-    <div class="bg-gradient-to-br from-violet-50/60 to-white rounded-xl border border-violet-200/50 p-5 shadow-sm lg:col-span-3">
-      <h3 class="text-sm font-semibold text-violet-900 mb-3 flex items-center gap-2">
-        <span class="w-1 h-4 bg-violet-500 rounded-full"></span> By หัวหน้าทีม
-      </h3>
-      <div class="h-[280px]"><canvas id="chart-team"></canvas></div>
-    </div>
-    <div class="bg-gradient-to-br from-cyan-50/60 to-white rounded-xl border border-cyan-200/50 p-5 shadow-sm lg:col-span-3">
-      <h3 class="text-sm font-semibold text-cyan-900 mb-3 flex items-center gap-2">
-        <span class="w-1 h-4 bg-cyan-500 rounded-full"></span> By Product (Top 10)
-      </h3>
-      <div class="h-[280px]"><canvas id="chart-product"></canvas></div>
+    <!-- row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-fuchsia-500"></span> สัดส่วนตามหัวหน้าทีม</h3>
+        <div class="h-[270px]"><canvas id="chart-team"></canvas></div>
+      </div>
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-blue-500"></span> Product สูงสุด (Top 10)</h3>
+        <div class="h-[270px]"><canvas id="chart-product"></canvas></div>
+      </div>
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-sky-500"></span> แผนกที่ลาออกสูงสุด (Top 10)</h3>
+        <div class="h-[270px]"><canvas id="chart-dept"></canvas></div>
+      </div>
     </div>
   </div>
 
   <!-- ───── Team Lead Summary ───── -->
-  <div class="bg-gradient-to-br from-fuchsia-50/40 via-white to-pink-50/30 rounded-xl border border-fuchsia-200/50 shadow-sm" data-section="team">
-    <div class="px-5 py-3 border-b border-fuchsia-200/50 flex items-center justify-between bg-gradient-to-r from-fuchsia-50/60 to-transparent rounded-t-xl">
-      <h3 class="text-sm font-semibold text-fuchsia-900 flex items-center gap-2">
-        <span class="w-1 h-4 bg-fuchsia-500 rounded-full"></span> สรุปตามหัวหน้าทีม
-      </h3>
-      <span class="text-xs text-fuchsia-700/70"><span id="team-count" class="font-semibold">0</span> ทีม · รวม <span id="team-total" class="font-semibold">0</span> คน</span>
+  <div class="glass rounded-2xl border border-white/60 shadow-sm anim" data-section="team">
+    <div class="px-5 py-3 border-b border-pink-100 flex items-center justify-between">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-fuchsia-500"></span> สรุปตามหัวหน้าทีม</h3>
+      <span class="text-xs text-slate-400"><span id="team-count" class="font-semibold text-fuchsia-600">0</span> ทีม · รวม <span id="team-total" class="font-semibold text-fuchsia-600">0</span> คน</span>
     </div>
     <div class="overflow-x-auto scrollbar-thin">
       <table class="w-full text-sm">
-        <thead class="bg-fuchsia-50/40 text-fuchsia-800 text-xs uppercase">
+        <thead class="text-slate-500 text-xs uppercase bg-pink-50/40">
           <tr>
             <th class="px-4 py-3 text-left w-12">#</th>
             <th class="px-4 py-3 text-left">หัวหน้าทีม</th>
             <th class="px-4 py-3 text-right">จำนวนลาออก</th>
+            <th class="px-4 py-3 text-right">อายุงานเฉลี่ย</th>
             <th class="px-4 py-3 text-right">% ของทั้งหมด</th>
-            <th class="px-4 py-3 text-left w-1/3">สัดส่วน</th>
+            <th class="px-4 py-3 text-left w-1/4">สัดส่วน</th>
           </tr>
         </thead>
-        <tbody id="team-summary-body" class="divide-y divide-fuchsia-100/60">
-          <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">—</td></tr>
-        </tbody>
+        <tbody id="team-summary-body" class="divide-y divide-pink-50"><tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">—</td></tr></tbody>
       </table>
     </div>
   </div>
 
   <!-- ───── Detail Table ───── -->
-  <div class="bg-gradient-to-br from-sky-50/30 via-white to-blue-50/20 rounded-xl border border-sky-200/50 shadow-sm" data-section="detail">
-    <div class="px-5 py-3 border-b border-sky-200/50 flex items-center justify-between bg-gradient-to-r from-sky-50/60 to-transparent rounded-t-xl">
-      <h3 class="text-sm font-semibold text-sky-900 flex items-center gap-2">
-        <span class="w-1 h-4 bg-sky-500 rounded-full"></span> รายละเอียดพนักงานที่ลาออก
-      </h3>
-      <span class="text-xs text-sky-700/70"><span id="row-count" class="font-semibold">0</span> รายการ</span>
+  <div class="glass rounded-2xl border border-white/60 shadow-sm anim" data-section="detail">
+    <div class="px-5 py-3 border-b border-blue-100 flex items-center justify-between">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-blue-500"></span> รายละเอียดพนักงานที่ลาออก</h3>
+      <span class="text-xs text-slate-400"><span id="row-count" class="font-semibold text-blue-600">0</span> รายการ</span>
     </div>
     <div class="overflow-x-auto scrollbar-thin">
       <table class="w-full text-sm">
-        <thead class="bg-sky-50/40 text-sky-800 text-xs uppercase">
+        <thead class="text-slate-500 text-xs uppercase bg-blue-50/40">
           <tr>
             <th class="sortable px-4 py-3 text-left" data-sort="employee_id">รหัสพนักงาน</th>
             <th class="sortable px-4 py-3 text-left" data-sort="full_name">ชื่อสกุล</th>
@@ -198,20 +204,19 @@
             <th class="sortable px-4 py-3 text-left" data-sort="position">ตำแหน่ง</th>
             <th class="sortable px-4 py-3 text-left" data-sort="start_date">วันที่เริ่มงาน</th>
             <th class="sortable px-4 py-3 text-left" data-sort="resign_date">วันที่ลาออก</th>
+            <th class="sortable px-4 py-3 text-right" data-sort="_tenure">อายุงาน</th>
             <th class="sortable px-4 py-3 text-left" data-sort="product">Product</th>
             <th class="sortable px-4 py-3 text-left" data-sort="team_lead">หัวหน้าทีม</th>
           </tr>
         </thead>
-        <tbody id="table-body" class="divide-y divide-sky-100/60">
-          <tr><td colspan="8" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
-        </tbody>
+        <tbody id="table-body" class="divide-y divide-blue-50"><tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
-    <div class="px-5 py-3 border-t border-sky-200/50 flex items-center justify-between text-xs text-sky-700 bg-sky-50/30 rounded-b-xl">
-      <div>หน้า <span id="page-current" class="font-semibold">1</span> / <span id="page-total" class="font-semibold">1</span></div>
+    <div class="px-5 py-3 border-t border-blue-100 flex items-center justify-between text-xs text-slate-500">
+      <div>หน้า <span id="page-current" class="font-semibold text-blue-600">1</span> / <span id="page-total" class="font-semibold">1</span></div>
       <div class="flex gap-2">
-        <button id="page-prev" class="px-3 py-1 rounded border border-sky-300 bg-white hover:bg-sky-100 disabled:opacity-40 disabled:cursor-not-allowed transition">← ก่อนหน้า</button>
-        <button id="page-next" class="px-3 py-1 rounded border border-sky-300 bg-white hover:bg-sky-100 disabled:opacity-40 disabled:cursor-not-allowed transition">ถัดไป →</button>
+        <button id="page-prev" class="px-3 py-1 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition">← ก่อนหน้า</button>
+        <button id="page-next" class="px-3 py-1 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition">ถัดไป →</button>
       </div>
     </div>
   </div>
@@ -223,23 +228,20 @@
 
 <!-- ───── Team Detail Modal ───── -->
 <div id="team-modal" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" id="modal-backdrop"></div>
-  <div class="relative max-w-5xl mx-auto mt-12 mb-12 bg-white rounded-2xl shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col">
-    <!-- header -->
-    <div class="px-6 py-4 border-b border-fuchsia-200/60 bg-gradient-to-r from-fuchsia-50 to-pink-50/50 rounded-t-2xl flex items-center justify-between">
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="modal-backdrop"></div>
+  <div class="relative max-w-5xl mx-auto mt-12 mb-12 bg-white rounded-3xl shadow-2xl border border-pink-100 max-h-[85vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-pink-100 rounded-t-3xl flex items-center justify-between" style="background:linear-gradient(90deg,#fdf2f8,#eff6ff);">
       <div>
-        <div class="text-xs font-medium text-fuchsia-600 uppercase tracking-wider">รายชื่อพนักงานที่ลาออก</div>
+        <div class="text-xs font-semibold text-pink-500 uppercase tracking-wider">รายชื่อพนักงานที่ลาออก</div>
         <h2 id="modal-title" class="text-xl font-bold text-slate-900 mt-1">—</h2>
         <div id="modal-subtitle" class="text-xs text-slate-500 mt-0.5">—</div>
       </div>
-      <button id="modal-close" class="w-9 h-9 rounded-full hover:bg-fuchsia-100 transition flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl">✕</button>
+      <button id="modal-close" class="w-9 h-9 rounded-full hover:bg-pink-100 transition flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl">✕</button>
     </div>
-    <!-- summary bar -->
-    <div id="modal-stats" class="px-6 py-3 bg-fuchsia-50/30 border-b border-fuchsia-200/40 grid grid-cols-3 gap-4 text-center text-xs"></div>
-    <!-- table -->
+    <div id="modal-stats" class="px-6 py-3 border-b border-pink-100/60 grid grid-cols-4 gap-3 text-center text-xs" style="background:rgba(253,242,248,0.5);"></div>
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600 text-xs uppercase sticky top-0">
+        <thead class="bg-slate-50 text-slate-500 text-xs uppercase sticky top-0">
           <tr>
             <th class="px-4 py-3 text-left w-12">#</th>
             <th class="px-4 py-3 text-left">รหัส</th>
@@ -248,16 +250,16 @@
             <th class="px-4 py-3 text-left">ตำแหน่ง</th>
             <th class="px-4 py-3 text-left">เริ่มงาน</th>
             <th class="px-4 py-3 text-left">ลาออก</th>
+            <th class="px-4 py-3 text-right">อายุงาน</th>
             <th class="px-4 py-3 text-left">Product</th>
           </tr>
         </thead>
         <tbody id="modal-body" class="divide-y divide-slate-100"></tbody>
       </table>
     </div>
-    <!-- footer -->
-    <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/50 rounded-b-2xl flex items-center justify-between text-xs">
-      <span class="text-slate-500">💡 คลิก ✕ หรือกด ESC เพื่อปิด</span>
-      <button id="modal-export" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md font-medium transition">⬇ Export ทีมนี้</button>
+    <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/50 rounded-b-3xl flex items-center justify-between text-xs">
+      <span class="text-slate-400">💡 คลิก ✕ หรือกด ESC เพื่อปิด</span>
+      <button id="modal-export" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition">⬇ Export ทีมนี้</button>
     </div>
   </div>
 </div>
@@ -266,8 +268,7 @@
 // ═══════════════════════════════════════════════════════════════
 //   HELPERS
 // ═══════════════════════════════════════════════════════════════
-// ⭐ Fiscal month bucket: เดือน N = วันที่ 2 ของเดือน N ถึง วันที่ 1 ของเดือน N+1
-// → shift -1 day แล้ว take YYYY-MM
+// Fiscal month bucket: เดือน N = วันที่ 2 ของเดือน N ถึง วันที่ 1 ของเดือน N+1
 function monthBucket(dateStr) {
   if (!dateStr) return '';
   const m = String(dateStr).match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -279,27 +280,44 @@ function monthBucket(dateStr) {
 function bucketYear(dateStr) { return monthBucket(dateStr).slice(0, 4); }
 function bucketMonth(dateStr) { return monthBucket(dateStr).slice(5, 7); }
 
+function parseDate(s) {
+  if (!s) return null;
+  const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+}
+// อายุงาน (วัน) จาก start → resign
+function tenureDays(r) {
+  const s = parseDate(r.start_date), e = parseDate(r.resign_date);
+  if (!s || !e) return null;
+  const d = Math.round((e - s) / 86400000);
+  return d >= 0 ? d : null;
+}
+function tenureMonths(r) { const d = tenureDays(r); return d == null ? null : d / 30.44; }
+function fmtTenure(r) {
+  const d = tenureDays(r);
+  if (d == null) return '—';
+  if (d < 31) return d + ' วัน';
+  const mo = d / 30.44;
+  if (mo < 12) return mo.toFixed(1) + ' ด.';
+  return (d / 365.25).toFixed(1) + ' ปี';
+}
+
+const MONTH_NAMES_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function monthLabelTH(ym) { // "2026-03" → "มี.ค. 2026"
+  const m = String(ym).match(/(\d{4})-(\d{2})/);
+  if (!m) return ym;
+  const short = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${short[+m[2]-1]} ${m[1]}`;
+}
+
 // ═══════════════════════════════════════════════════════════════
 //   STATE
 // ═══════════════════════════════════════════════════════════════
-let RAW = [];           // all rows
-let FILTERED = [];      // after filters
+let RAW = [], FILTERED = [];
 const PAGE_SIZE = 50;
-let currentPage = 1;
-let sortKey = 'resign_date';
-let sortDir = 'desc';
+let currentPage = 1, sortKey = 'resign_date', sortDir = 'desc';
 const charts = {};
-
-const FIELD_MAP = {
-  employee_id: 0,
-  full_name:   1,
-  department:  2,
-  position:    3,
-  start_date:  4,
-  resign_date: 5,
-  product:     6,
-  team_lead:   7,
-};
 
 document.getElementById('cutoff-display').textContent = CUTOFF_DATE;
 
@@ -307,18 +325,14 @@ document.getElementById('cutoff-display').textContent = CUTOFF_DATE;
 //   LOAD
 // ═══════════════════════════════════════════════════════════════
 async function loadData() {
-  if (!CSV_URL || CSV_URL.includes('<<')) {
-    setError('⚠️ ยังไม่ได้ตั้ง CSV_URL — เปิดไฟล์ HTML แล้วแก้ค่า CSV_URL ที่ด้านบน');
-    return;
-  }
+  if (!CSV_URL || CSV_URL.includes('<<')) { setError('⚠️ ยังไม่ได้ตั้ง CSV_URL'); return; }
   setLoading();
   try {
-    const res = await fetch(CSV_URL + '&_=' + Date.now()); // bust cache
+    const res = await fetch(CSV_URL + '&_=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     const parsed = Papa.parse(text, { skipEmptyLines: true });
     const rows = parsed.data;
-    // header detection: ถ้า row แรกเป็น header (ไม่ใช่ digit) → ข้าม
     const startIdx = rows.length > 0 && rows[0][0] && !/^\d/.test(rows[0][0]) ? 1 : 0;
     RAW = rows.slice(startIdx).map(r => ({
       employee_id: (r[0] || '').trim(),
@@ -330,297 +344,255 @@ async function loadData() {
       product:     (r[6] || '').trim(),
       team_lead:   (r[7] || '').trim(),
     })).filter(r => r.employee_id);
-
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
     applyFilters();
-  } catch (e) {
-    setError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
-  }
+  } catch (e) { setError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 }
-
-function setLoading() {
-  document.getElementById('table-body').innerHTML =
-    '<tr><td colspan="8" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>';
-}
-function setError(msg) {
-  document.getElementById('table-body').innerHTML =
-    `<tr><td colspan="8" class="px-4 py-12 text-center text-red-500">${msg}</td></tr>`;
-}
+function setLoading() { document.getElementById('table-body').innerHTML = '<tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>'; }
+function setError(msg) { document.getElementById('table-body').innerHTML = `<tr><td colspan="9" class="px-4 py-12 text-center text-rose-500">${msg}</td></tr>`; }
 
 // ═══════════════════════════════════════════════════════════════
 //   FILTERS
 // ═══════════════════════════════════════════════════════════════
-const MONTH_NAMES_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-
 function populateFilters() {
   const years   = [...new Set(RAW.map(r => bucketYear(r.resign_date)).filter(Boolean))].sort().reverse();
   const months  = [...new Set(RAW.map(r => bucketMonth(r.resign_date)).filter(Boolean))].sort();
   const teams   = [...new Set(RAW.map(r => r.team_lead).filter(Boolean))].sort();
   const products= [...new Set(RAW.map(r => r.product).filter(Boolean))].sort();
-
   fillSelect('filter-year', years);
   fillSelectMonths('filter-month', months);
   fillSelect('filter-team', teams);
   fillSelect('filter-product', products);
 }
 function fillSelect(id, items) {
-  const sel = document.getElementById(id);
-  const current = sel.value;
+  const sel = document.getElementById(id), cur = sel.value;
   sel.innerHTML = '<option value="">ทั้งหมด</option>';
-  items.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v; o.textContent = v;
-    sel.appendChild(o);
-  });
-  sel.value = current;
+  items.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+  sel.value = cur;
 }
-function fillSelectMonths(id, monthCodes) {
-  const sel = document.getElementById(id);
-  const current = sel.value;
+function fillSelectMonths(id, codes) {
+  const sel = document.getElementById(id), cur = sel.value;
   sel.innerHTML = '<option value="">ทั้งหมด</option>';
-  monthCodes.forEach(mm => {
+  codes.forEach(mm => {
     const idx = parseInt(mm, 10) - 1;
     const label = (idx >= 0 && idx < 12) ? `${mm} - ${MONTH_NAMES_TH[idx]}` : mm;
-    const o = document.createElement('option');
-    o.value = mm; o.textContent = label;
-    sel.appendChild(o);
+    const o = document.createElement('option'); o.value = mm; o.textContent = label; sel.appendChild(o);
   });
-  sel.value = current;
+  sel.value = cur;
 }
-
 function applyFilters() {
-  const y  = document.getElementById('filter-year').value;
-  const mo = document.getElementById('filter-month').value;
-  const t  = document.getElementById('filter-team').value;
-  const p  = document.getElementById('filter-product').value;
-  const q  = document.getElementById('filter-search').value.trim().toLowerCase();
-
+  const y = val('filter-year'), mo = val('filter-month'), t = val('filter-team'), p = val('filter-product');
+  const q = document.getElementById('filter-search').value.trim().toLowerCase();
   FILTERED = RAW.filter(r => {
     if (y && bucketYear(r.resign_date) !== y) return false;
     if (mo && bucketMonth(r.resign_date) !== mo) return false;
     if (t && r.team_lead !== t) return false;
     if (p && r.product !== p) return false;
-    if (q) {
-      const hay = `${r.employee_id} ${r.full_name} ${r.department} ${r.position}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
+    if (q && !`${r.employee_id} ${r.full_name} ${r.department} ${r.position}`.toLowerCase().includes(q)) return false;
     return true;
   });
   currentPage = 1;
   render();
 }
+function val(id) { return document.getElementById(id).value; }
 
 // ═══════════════════════════════════════════════════════════════
 //   RENDER
 // ═══════════════════════════════════════════════════════════════
-function render() {
-  renderKPIs();
-  renderCharts();
-  renderTeamSummary();
-  renderTable();
-}
-
-function renderTeamSummary() {
-  const map = groupCount(FILTERED, 'team_lead');
-  const total = FILTERED.length;
-  const rows = [...map.entries()]
-    .map(([name, count]) => ({ name: name || '(ไม่ระบุ)', count, pct: total ? (count / total) * 100 : 0 }))
-    .sort((a, b) => b.count - a.count);
-
-  const max = rows.length ? rows[0].count : 0;
-  const body = document.getElementById('team-summary-body');
-  if (rows.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
-  } else {
-    const ranks = [
-      'bg-amber-100 text-amber-800 ring-1 ring-amber-300',     // #1
-      'bg-slate-100 text-slate-700 ring-1 ring-slate-300',     // #2
-      'bg-orange-100 text-orange-800 ring-1 ring-orange-300',  // #3
-    ];
-    body.innerHTML = rows.map((r, i) => {
-      const barPct = max ? (r.count / max) * 100 : 0;
-      const rankBadge = ranks[i] || 'bg-fuchsia-50 text-fuchsia-600';
-      const barColor = i === 0 ? 'from-rose-400 to-pink-500'
-                     : i === 1 ? 'from-orange-400 to-amber-500'
-                     : i === 2 ? 'from-amber-400 to-yellow-500'
-                     : 'from-fuchsia-400 to-pink-400';
-      return `
-      <tr class="hover:bg-fuchsia-50/60 transition cursor-pointer group" data-team="${esc(r.name)}">
-        <td class="px-4 py-2">
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${rankBadge}">${i + 1}</span>
-        </td>
-        <td class="px-4 py-2">
-          <span class="font-medium text-fuchsia-700 group-hover:text-fuchsia-900 group-hover:underline decoration-fuchsia-400 underline-offset-2">${esc(r.name)}</span>
-          <span class="ml-1.5 text-xs text-fuchsia-400 opacity-0 group-hover:opacity-100 transition">👁️ ดู</span>
-        </td>
-        <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
-        <td class="px-4 py-2 text-right tabular-nums">
-          <span class="badge bg-fuchsia-100/70 text-fuchsia-700">${r.pct.toFixed(1)}%</span>
-        </td>
-        <td class="px-4 py-2">
-          <div class="h-2.5 bg-fuchsia-50 rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r ${barColor} rounded-full" style="width: ${barPct.toFixed(1)}%"></div>
-          </div>
-        </td>
-      </tr>`;
-    }).join('');
-    // bind click
-    body.querySelectorAll('tr[data-team]').forEach(tr => {
-      tr.addEventListener('click', () => openTeamModal(tr.dataset.team));
-    });
-  }
-  document.getElementById('team-count').textContent = rows.length;
-  document.getElementById('team-total').textContent = total.toLocaleString();
-}
-
-function renderKPIs() {
-  const total = FILTERED.length;
-  document.getElementById('kpi-total').textContent = total.toLocaleString();
-  document.getElementById('kpi-total-sub').textContent =
-    total === RAW.length ? 'จากทั้งหมด' : `จาก ${RAW.length.toLocaleString()}`;
-
-  // top team / product
-  const teamCnt = groupCount(FILTERED, 'team_lead');
-  const prodCnt = groupCount(FILTERED, 'product');
-  const topTeam = topEntry(teamCnt);
-  const topProd = topEntry(prodCnt);
-  document.getElementById('kpi-top-team').textContent = topTeam[0] || '—';
-  document.getElementById('kpi-top-team-count').textContent = topTeam[1] ? `${topTeam[1].toLocaleString()} คน` : '—';
-  document.getElementById('kpi-top-product').textContent = topProd[0] || '—';
-  document.getElementById('kpi-top-product-count').textContent = topProd[1] ? `${topProd[1].toLocaleString()} คน` : '—';
-}
+function render() { renderKPIs(); renderCharts(); renderTeamSummary(); renderTable(); }
 
 function groupCount(rows, key) {
   const m = new Map();
-  rows.forEach(r => {
-    const k = r[key] || '(ไม่ระบุ)';
-    m.set(k, (m.get(k) || 0) + 1);
-  });
+  rows.forEach(r => { const k = r[key] || '(ไม่ระบุ)'; m.set(k, (m.get(k) || 0) + 1); });
   return m;
 }
-function topEntry(m) {
-  let best = ['', 0];
-  m.forEach((v, k) => { if (v > best[1]) best = [k, v]; });
-  return best;
+function topEntry(m) { let best = ['', 0]; m.forEach((v, k) => { if (v > best[1]) best = [k, v]; }); return best; }
+function sortMap(m, limit) { const a = [...m.entries()].sort((x, y) => y[1] - x[1]); return new Map(limit ? a.slice(0, limit) : a); }
+function avg(arr) { const v = arr.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+
+function renderKPIs() {
+  const total = FILTERED.length;
+  setText('kpi-total', total.toLocaleString());
+  setText('kpi-total-sub', total === RAW.length ? 'จากทั้งหมด' : `จาก ${RAW.length.toLocaleString()} ทั้งหมด`);
+
+  // avg tenure
+  const tm = avg(FILTERED.map(tenureMonths));
+  setText('kpi-tenure', tm == null ? '—' : tm.toFixed(1));
+
+  // early attrition (<6 เดือน = 183 วัน)
+  const withTen = FILTERED.map(tenureDays).filter(d => d != null);
+  const early = withTen.filter(d => d < 183).length;
+  setText('kpi-early', withTen.length ? Math.round(early / withTen.length * 100) : '—');
+  setText('kpi-early-sub', `${early.toLocaleString()} จาก ${withTen.length.toLocaleString()} คน`);
+
+  // peak month
+  const monthMap = new Map();
+  FILTERED.forEach(r => { const m = monthBucket(r.resign_date); if (m) monthMap.set(m, (monthMap.get(m) || 0) + 1); });
+  const peak = topEntry(monthMap);
+  setText('kpi-peak', peak[0] ? monthLabelTH(peak[0]) : '—');
+  setText('kpi-peak-sub', peak[1] ? `${peak[1].toLocaleString()} คน` : '—');
+
+  // top team / product
+  const topTeam = topEntry(groupCount(FILTERED, 'team_lead'));
+  const topProd = topEntry(groupCount(FILTERED, 'product'));
+  setText('kpi-top-team', topTeam[0] || '—');
+  setText('kpi-top-team-count', topTeam[1] ? `${topTeam[1].toLocaleString()} คน` : '—');
+  setText('kpi-top-product', topProd[0] || '—');
+  setText('kpi-top-product-count', topProd[1] ? `${topProd[1].toLocaleString()} คน` : '—');
 }
 
 // ───── Charts ─────
+const PINK = '#ec4899', BLUE = '#3b82f6';
+const PALETTE = ['#ec4899','#3b82f6','#f472b6','#0ea5e9','#db2777','#60a5fa','#f9a8d4','#38bdf8','#be185d','#93c5fd','#a21caf','#6366f1'];
+
 function renderCharts() {
-  // Monthly
+  // Monthly trend (area)
   const monthMap = new Map();
-  FILTERED.forEach(r => {
-    const m = monthBucket(r.resign_date);
-    if (!m) return;
-    monthMap.set(m, (monthMap.get(m) || 0) + 1);
-  });
+  FILTERED.forEach(r => { const m = monthBucket(r.resign_date); if (m) monthMap.set(m, (monthMap.get(m) || 0) + 1); });
   const months = [...monthMap.keys()].sort();
-  const monthCounts = months.map(m => monthMap.get(m));
+  const counts = months.map(m => monthMap.get(m));
   drawChart('chart-monthly', 'line', {
-    labels: months,
-    datasets: [{
-      label: 'จำนวนคน',
-      data: monthCounts,
-      borderColor: '#4f46e5',
-      backgroundColor: 'rgba(79, 70, 229, 0.12)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-    }]
-  }, { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } });
+    labels: months.map(monthLabelTH),
+    datasets: [{ label: 'จำนวนคน', data: counts, borderColor: PINK, borderWidth: 3,
+      backgroundColor: (ctx) => { const c = ctx.chart.ctx; const g = c.createLinearGradient(0,0,0,290); g.addColorStop(0,'rgba(236,72,153,0.28)'); g.addColorStop(1,'rgba(59,130,246,0.02)'); return g; },
+      fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: PINK, pointBorderWidth: 2 }]
+  }, { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } } });
+
+  // trend badge: เทียบเดือนล่าสุด vs ก่อนหน้า
+  const badge = document.getElementById('trend-badge');
+  if (counts.length >= 2) {
+    const a = counts[counts.length - 2], b = counts[counts.length - 1];
+    const diff = b - a, pct = a ? Math.round(diff / a * 100) : 0;
+    if (diff > 0)      badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600', badge.textContent = `▲ +${diff} (${pct}%) เทียบเดือนก่อน`;
+    else if (diff < 0) badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600', badge.textContent = `▼ ${diff} (${pct}%) เทียบเดือนก่อน`;
+    else               badge.className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500', badge.textContent = 'เท่าเดือนก่อน';
+  } else { badge.className = 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-400'; badge.textContent = '—'; }
+
+  // Tenure distribution
+  const buckets = [
+    { label: '< 3 ด.',   max: 91 },
+    { label: '3-6 ด.',   max: 183 },
+    { label: '6-12 ด.',  max: 365 },
+    { label: '1-2 ปี',   max: 730 },
+    { label: '2-5 ปี',   max: 1826 },
+    { label: '> 5 ปี',   max: Infinity },
+  ];
+  const bucketCounts = buckets.map(() => 0);
+  FILTERED.forEach(r => { const d = tenureDays(r); if (d == null) return; const i = buckets.findIndex(b => d < b.max); if (i >= 0) bucketCounts[i]++; });
+  drawChart('chart-tenure', 'bar', {
+    labels: buckets.map(b => b.label),
+    datasets: [{ label: 'จำนวนคน', data: bucketCounts,
+      backgroundColor: ['#fb7185','#f472b6','#e879f9','#818cf8','#60a5fa','#38bdf8'], borderRadius: 6, maxBarThickness: 40 }]
+  }, { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } } });
 
   // Team donut
-  const teamMap = sortMap(groupCount(FILTERED, 'team_lead'));
+  const teamMap = sortMap(groupCount(FILTERED, 'team_lead'), 10);
   drawChart('chart-team', 'doughnut', {
     labels: [...teamMap.keys()],
-    datasets: [{
-      data: [...teamMap.values()],
-      backgroundColor: ['#6366f1','#3b82f6','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#a3a3a3'],
-    }]
-  }, { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } });
+    datasets: [{ data: [...teamMap.values()], backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+  }, { cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, font: { size: 10 }, padding: 8 } } } });
 
   // Product bar (top 10)
   const prodMap = sortMap(groupCount(FILTERED, 'product'), 10);
   drawChart('chart-product', 'bar', {
     labels: [...prodMap.keys()],
-    datasets: [{
-      label: 'จำนวนคน',
-      data: [...prodMap.values()],
-      backgroundColor: '#06b6d4',
-    }]
-  }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } });
+    datasets: [{ label: 'จำนวนคน', data: [...prodMap.values()], backgroundColor: BLUE, borderRadius: 5, maxBarThickness: 22 }]
+  }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
+
+  // Department bar (top 10) — clean dept name (ตัดส่วนหลัง)
+  const deptMap = new Map();
+  FILTERED.forEach(r => { const k = (r.department || '(ไม่ระบุ)').split(/\s+/).slice(0,2).join(' '); deptMap.set(k, (deptMap.get(k) || 0) + 1); });
+  const deptTop = sortMap(deptMap, 10);
+  drawChart('chart-dept', 'bar', {
+    labels: [...deptTop.keys()],
+    datasets: [{ label: 'จำนวนคน', data: [...deptTop.values()], backgroundColor: '#d946ef', borderRadius: 5, maxBarThickness: 22 }]
+  }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
+}
+function drawChart(id, type, data, options) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), { type, data, options: { responsive: true, maintainAspectRatio: false, ...options } });
 }
 
-function sortMap(m, limit) {
-  const arr = [...m.entries()].sort((a, b) => b[1] - a[1]);
-  const sliced = limit ? arr.slice(0, limit) : arr;
-  return new Map(sliced);
-}
-function drawChart(canvasId, type, data, options) {
-  if (charts[canvasId]) charts[canvasId].destroy();
-  charts[canvasId] = new Chart(document.getElementById(canvasId), {
-    type, data, options: { responsive: true, maintainAspectRatio: false, ...options }
+// ───── Team Summary ─────
+function renderTeamSummary() {
+  const total = FILTERED.length;
+  const m = new Map();
+  FILTERED.forEach(r => {
+    const k = r.team_lead || '(ไม่ระบุ)';
+    if (!m.has(k)) m.set(k, { count: 0, tenure: [] });
+    const o = m.get(k); o.count++; o.tenure.push(tenureMonths(r));
   });
+  const rows = [...m.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) }))
+    .sort((a, b) => b.count - a.count);
+  const max = rows.length ? rows[0].count : 0;
+  const body = document.getElementById('team-summary-body');
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
+  else {
+    const ranks = ['bg-amber-100 text-amber-700 ring-1 ring-amber-300','bg-slate-100 text-slate-600 ring-1 ring-slate-300','bg-orange-100 text-orange-700 ring-1 ring-orange-300'];
+    body.innerHTML = rows.map((r, i) => `
+      <tr class="hover:bg-pink-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
+        <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-pink-50 text-pink-500'}">${i + 1}</span></td>
+        <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-pink-700 group-hover:underline decoration-pink-400 underline-offset-2">${esc(r.name)}</span><span class="ml-1.5 text-xs text-pink-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
+        <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
+        <td class="px-4 py-2 text-right tabular-nums text-slate-500">${r.ten == null ? '—' : r.ten.toFixed(1) + ' ด.'}</td>
+        <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-pink-100/70 text-pink-700">${r.pct.toFixed(1)}%</span></td>
+        <td class="px-4 py-2"><div class="h-2.5 bg-pink-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ec4899,#3b82f6)"></div></div></td>
+      </tr>`).join('');
+    body.querySelectorAll('tr[data-team]').forEach(tr => tr.addEventListener('click', () => openTeamModal(tr.dataset.team)));
+  }
+  setText('team-count', rows.length);
+  setText('team-total', total.toLocaleString());
 }
 
 // ───── Table ─────
 function renderTable() {
   const sorted = [...FILTERED].sort((a, b) => {
-    const x = (a[sortKey] || '').toString();
-    const y = (b[sortKey] || '').toString();
+    let x, y;
+    if (sortKey === '_tenure') { x = tenureDays(a) ?? -1; y = tenureDays(b) ?? -1; return sortDir === 'asc' ? x - y : y - x; }
+    x = (a[sortKey] || '').toString(); y = (b[sortKey] || '').toString();
     if (x < y) return sortDir === 'asc' ? -1 : 1;
     if (x > y) return sortDir === 'asc' ? 1 : -1;
     return 0;
   });
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const slice = sorted.slice(start, start + PAGE_SIZE);
-
+  const slice = sorted.slice((currentPage - 1) * PAGE_SIZE, (currentPage - 1) * PAGE_SIZE + PAGE_SIZE);
   const body = document.getElementById('table-body');
-  if (slice.length === 0) {
-    body.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
-  } else {
-    body.innerHTML = slice.map((r, i) => `
-      <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-sky-50/30'} hover:bg-sky-100/40 transition">
-        <td class="px-4 py-2 font-mono text-xs text-slate-600">${esc(r.employee_id)}</td>
+  if (!slice.length) { body.innerHTML = '<tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
+  else {
+    body.innerHTML = slice.map((r, i) => {
+      const d = tenureDays(r);
+      const tenBadge = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : d < 365 ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
+      return `
+      <tr class="${i % 2 ? 'bg-white/40' : 'bg-white/70'} hover:bg-pink-50/40 transition">
+        <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(r.employee_id)}</td>
         <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
-        <td class="px-4 py-2 text-slate-600">${esc(r.department)}</td>
-        <td class="px-4 py-2 text-slate-600">${esc(r.position)}</td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-emerald-50 text-emerald-700">${esc(fmtDate(r.start_date))}</span></td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-rose-50 text-rose-700">${esc(fmtDate(r.resign_date))}</span></td>
-        <td class="px-4 py-2"><span class="badge bg-cyan-50 text-cyan-700">${esc(r.product) || '—'}</span></td>
-        <td class="px-4 py-2"><span class="badge bg-violet-50 text-violet-700">${esc(r.team_lead) || '—'}</span></td>
-      </tr>
-    `).join('');
+        <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.department)}</td>
+        <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.position)}</td>
+        <td class="px-4 py-2 text-xs"><span class="badge bg-sky-50 text-sky-600">${esc(fmtDate(r.start_date))}</span></td>
+        <td class="px-4 py-2 text-xs"><span class="badge bg-pink-50 text-pink-600">${esc(fmtDate(r.resign_date))}</span></td>
+        <td class="px-4 py-2 text-right text-xs"><span class="badge ${tenBadge}">${fmtTenure(r)}</span></td>
+        <td class="px-4 py-2"><span class="badge bg-blue-50 text-blue-600">${esc(r.product) || '—'}</span></td>
+        <td class="px-4 py-2"><span class="badge bg-fuchsia-50 text-fuchsia-600">${esc(r.team_lead) || '—'}</span></td>
+      </tr>`;
+    }).join('');
   }
-  document.getElementById('row-count').textContent = sorted.length.toLocaleString();
-  document.getElementById('page-current').textContent = currentPage;
-  document.getElementById('page-total').textContent = totalPages;
+  setText('row-count', sorted.length.toLocaleString());
+  setText('page-current', currentPage);
+  setText('page-total', totalPages);
   document.getElementById('page-prev').disabled = currentPage <= 1;
   document.getElementById('page-next').disabled = currentPage >= totalPages;
 }
 
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[c]);
-}
-
-function fmtDate(s) {
-  if (!s) return '';
-  // รองรับ ISO "2026-04-01T00:00:00.000Z" และ "2026-04-01" และ format อื่น
-  const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
-}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(s) { if (!s) return ''; const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[1]}-${m[2]}-${m[3]}` : s; }
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 
 // ═══════════════════════════════════════════════════════════════
 //   EVENTS
 // ═══════════════════════════════════════════════════════════════
-['filter-year','filter-month','filter-team','filter-product'].forEach(id => {
-  document.getElementById(id).addEventListener('change', applyFilters);
-});
+['filter-year','filter-month','filter-team','filter-product'].forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
 document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 200));
 document.getElementById('clear-filters').addEventListener('click', () => {
   ['filter-year','filter-month','filter-team','filter-product'].forEach(id => document.getElementById(id).value = '');
@@ -628,133 +600,79 @@ document.getElementById('clear-filters').addEventListener('click', () => {
   applyFilters();
 });
 document.getElementById('refresh-btn').addEventListener('click', loadData);
-
-document.getElementById('view-selector').addEventListener('change', (e) => {
+document.getElementById('view-selector').addEventListener('change', e => {
   const view = e.target.value;
-  document.querySelectorAll('[data-section]').forEach(el => {
-    const sec = el.dataset.section;
-    el.style.display = (view === 'all' || view === sec) ? '' : 'none';
-  });
-  // re-render charts ถ้าเปิด charts section (canvas ต้อง resize)
-  if (view === 'charts' || view === 'all') {
-    setTimeout(() => {
-      Object.values(charts).forEach(c => c && c.resize());
-    }, 50);
-  }
+  document.querySelectorAll('[data-section]').forEach(el => { el.style.display = (view === 'all' || view === el.dataset.section) ? '' : 'none'; });
+  if (view === 'charts' || view === 'all') setTimeout(() => Object.values(charts).forEach(c => c && c.resize()), 60);
 });
-
-document.querySelectorAll('th.sortable').forEach(th => {
-  th.addEventListener('click', () => {
-    const k = th.dataset.sort;
-    if (sortKey === k) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    else { sortKey = k; sortDir = 'asc'; }
-    renderTable();
-  });
-});
+document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (sortKey === k) sortDir = sortDir === 'asc' ? 'desc' : 'asc'; else { sortKey = k; sortDir = 'asc'; }
+  renderTable();
+}));
 document.getElementById('page-prev').addEventListener('click', () => { currentPage--; renderTable(); });
 document.getElementById('page-next').addEventListener('click', () => { currentPage++; renderTable(); });
+document.getElementById('export-csv').addEventListener('click', () => exportCSV(FILTERED, `turnover_${new Date().toISOString().slice(0,10)}.csv`));
 
-document.getElementById('export-csv').addEventListener('click', () => {
-  const headers = ['รหัสพนักงาน','ชื่อสกุล','แผนก','ตำแหน่ง','วันที่เริ่มงาน','วันที่ลาออก','Product','หัวหน้าทีม'];
-  const rows = FILTERED.map(r => [r.employee_id, r.full_name, r.department, r.position, r.start_date, r.resign_date, r.product, r.team_lead]);
-  const csv = [headers, ...rows].map(row =>
-    row.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(',')
-  ).join('\n');
+function exportCSV(data, filename) {
+  const headers = ['รหัสพนักงาน','ชื่อสกุล','แผนก','ตำแหน่ง','วันที่เริ่มงาน','วันที่ลาออก','อายุงาน(วัน)','Product','หัวหน้าทีม'];
+  const rows = data.map(r => [r.employee_id, r.full_name, r.department, r.position, fmtDate(r.start_date), fmtDate(r.resign_date), tenureDays(r) ?? '', r.product, r.team_lead]);
+  const csv = [headers, ...rows].map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `turnover_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-});
-
-function debounce(fn, ms) {
-  let t;
-  return function() {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, arguments), ms);
-  };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
 }
+function debounce(fn, ms) { let t; return function() { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), ms); }; }
 
 // ═══════════════════════════════════════════════════════════════
 //   TEAM MODAL
 // ═══════════════════════════════════════════════════════════════
-let modalCurrentTeam = '';
-let modalCurrentRows = [];
-
+let modalCurrentTeam = '', modalCurrentRows = [];
 function openTeamModal(teamName) {
   modalCurrentTeam = teamName;
   const rawName = teamName === '(ไม่ระบุ)' ? '' : teamName;
   modalCurrentRows = FILTERED.filter(r => (r.team_lead || '') === rawName);
+  setText('modal-title', teamName);
+  setText('modal-subtitle', `${modalCurrentRows.length.toLocaleString()} คน · ${(modalCurrentRows.length / Math.max(1,FILTERED.length) * 100).toFixed(1)}% ของทั้งหมด`);
 
-  document.getElementById('modal-title').textContent = teamName;
-  document.getElementById('modal-subtitle').textContent =
-    `${modalCurrentRows.length.toLocaleString()} คน · ${((modalCurrentRows.length / FILTERED.length) * 100).toFixed(1)}% ของทั้งหมด`;
-
-  // stats
   const products = [...new Set(modalCurrentRows.map(r => r.product).filter(Boolean))];
   const depts    = [...new Set(modalCurrentRows.map(r => r.department).filter(Boolean))];
-  const months   = [...new Set(modalCurrentRows.map(r => monthBucket(r.resign_date)).filter(Boolean))];
+  const ten      = avg(modalCurrentRows.map(tenureMonths));
+  const early    = modalCurrentRows.map(tenureDays).filter(d => d != null && d < 183).length;
   document.getElementById('modal-stats').innerHTML = `
-    <div class="bg-white rounded-lg py-2 border border-fuchsia-100">
-      <div class="text-fuchsia-600 font-semibold text-base">${products.length}</div>
-      <div class="text-slate-500">Product</div>
-    </div>
-    <div class="bg-white rounded-lg py-2 border border-fuchsia-100">
-      <div class="text-fuchsia-600 font-semibold text-base">${depts.length}</div>
-      <div class="text-slate-500">แผนก</div>
-    </div>
-    <div class="bg-white rounded-lg py-2 border border-fuchsia-100">
-      <div class="text-fuchsia-600 font-semibold text-base">${months.length}</div>
-      <div class="text-slate-500">เดือนที่มีลาออก</div>
-    </div>`;
+    ${stat(products.length, 'Product')}
+    ${stat(depts.length, 'แผนก')}
+    ${stat(ten == null ? '—' : ten.toFixed(1)+' ด.', 'อายุงานเฉลี่ย')}
+    ${stat(early, 'ลาออก < 6 ด.')}`;
 
-  // table (sorted by resign date desc)
   const sorted = [...modalCurrentRows].sort((a, b) => (b.resign_date || '').localeCompare(a.resign_date || ''));
   const body = document.getElementById('modal-body');
-  if (sorted.length === 0) {
-    body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
-  } else {
-    body.innerHTML = sorted.map((r, i) => `
-      <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-fuchsia-50/20'} hover:bg-fuchsia-50/50 transition">
-        <td class="px-4 py-2 text-slate-400 text-xs">${i + 1}</td>
-        <td class="px-4 py-2 font-mono text-xs text-slate-600">${esc(r.employee_id)}</td>
-        <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
-        <td class="px-4 py-2 text-slate-600 text-xs">${esc(r.department)}</td>
-        <td class="px-4 py-2 text-slate-600 text-xs">${esc(r.position)}</td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-emerald-50 text-emerald-700">${esc(fmtDate(r.start_date))}</span></td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-rose-50 text-rose-700">${esc(fmtDate(r.resign_date))}</span></td>
-        <td class="px-4 py-2"><span class="badge bg-cyan-50 text-cyan-700">${esc(r.product) || '—'}</span></td>
-      </tr>`).join('');
-  }
+  body.innerHTML = sorted.length ? sorted.map((r, i) => {
+    const d = tenureDays(r);
+    const tb = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600';
+    return `
+    <tr class="${i % 2 ? 'bg-pink-50/20' : 'bg-white'} hover:bg-pink-50/40 transition">
+      <td class="px-4 py-2 text-slate-400 text-xs">${i + 1}</td>
+      <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(r.employee_id)}</td>
+      <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.department)}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.position)}</td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-sky-50 text-sky-600">${esc(fmtDate(r.start_date))}</span></td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-pink-50 text-pink-600">${esc(fmtDate(r.resign_date))}</span></td>
+      <td class="px-4 py-2 text-right text-xs"><span class="badge ${tb}">${fmtTenure(r)}</span></td>
+      <td class="px-4 py-2"><span class="badge bg-blue-50 text-blue-600">${esc(r.product) || '—'}</span></td>
+    </tr>`; }).join('') : '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
 
   document.getElementById('team-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
-
-function closeTeamModal() {
-  document.getElementById('team-modal').classList.add('hidden');
-  document.body.style.overflow = '';
-}
-
+function stat(v, label) { return `<div class="bg-white rounded-xl py-2 border border-pink-100"><div class="text-pink-600 font-bold text-base">${v}</div><div class="text-slate-400">${label}</div></div>`; }
+function closeTeamModal() { document.getElementById('team-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 document.getElementById('modal-close').addEventListener('click', closeTeamModal);
 document.getElementById('modal-backdrop').addEventListener('click', closeTeamModal);
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !document.getElementById('team-modal').classList.contains('hidden')) closeTeamModal();
-});
-
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('team-modal').classList.contains('hidden')) closeTeamModal(); });
 document.getElementById('modal-export').addEventListener('click', () => {
   if (!modalCurrentRows.length) return;
-  const headers = ['รหัสพนักงาน','ชื่อสกุล','แผนก','ตำแหน่ง','วันที่เริ่มงาน','วันที่ลาออก','Product','หัวหน้าทีม'];
-  const rows = modalCurrentRows.map(r => [r.employee_id, r.full_name, r.department, r.position, fmtDate(r.start_date), fmtDate(r.resign_date), r.product, r.team_lead]);
-  const csv = [headers, ...rows].map(row =>
-    row.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(',')
-  ).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const safeName = modalCurrentTeam.replace(/[^฀-๿a-zA-Z0-9_-]+/g, '_');
-  a.download = `turnover_${safeName}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+  exportCSV(modalCurrentRows, `turnover_${modalCurrentTeam.replace(/[^฀-๿a-zA-Z0-9_-]+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
 });
 
 // ───── go ─────
