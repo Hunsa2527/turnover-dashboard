@@ -515,6 +515,24 @@ function drawChart(id, type, data, options) {
 }
 
 // ───── Team Summary ─────
+// Early Warning: เทียบจำนวนลาออก 3 เดือนล่าสุด vs 3 เดือนก่อนหน้า ต่อทีม (ใช้ RAW ทั้งหมด ไม่ขึ้นกับ filter)
+function teamTrend(name) {
+  const toNum = ym => { const p = String(ym).split('-'); return (+p[0]) * 12 + (+p[1]); };
+  const months = RAW.map(r => monthBucket(r.resign_date)).filter(Boolean).map(toNum);
+  if (!months.length) return null;
+  const anchor = Math.max(...months);
+  const rawName = name === '(ไม่ระบุ)' ? '' : name;
+  let recent = 0, prev = 0;
+  RAW.forEach(r => {
+    if ((r.team_lead || '') !== rawName) return;
+    const mb = monthBucket(r.resign_date); if (!mb) return;
+    const d = anchor - toNum(mb);
+    if (d >= 0 && d <= 2) recent++;
+    else if (d >= 3 && d <= 5) prev++;
+  });
+  const pct = prev > 0 ? (recent - prev) / prev * 100 : (recent > 0 ? 999 : 0);
+  return { recent, prev, pct, flag: prev > 0 ? pct > 20 : recent >= 3 };
+}
 function renderTeamSummary() {
   const total = FILTERED.length;
   const m = new Map();
@@ -530,15 +548,18 @@ function renderTeamSummary() {
   if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
   else {
     const ranks = ['bg-amber-100 text-amber-700 ring-1 ring-amber-300','bg-slate-100 text-slate-600 ring-1 ring-slate-300','bg-orange-100 text-orange-700 ring-1 ring-orange-300'];
-    body.innerHTML = rows.map((r, i) => `
+    body.innerHTML = rows.map((r, i) => {
+      const tr = teamTrend(r.name);
+      const flag = tr && tr.flag ? `<span class="badge bg-rose-100 text-rose-700 ml-1.5" title="ลาออก 3 เดือนล่าสุด ${tr.recent} คน · 3 เดือนก่อนหน้า ${tr.prev} คน">⚠️ ${tr.prev > 0 ? '+' + Math.round(tr.pct) + '%' : 'พุ่ง'}</span>` : '';
+      return `
       <tr class="hover:bg-pink-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
         <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-pink-50 text-pink-500'}">${i + 1}</span></td>
-        <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-pink-700 group-hover:underline decoration-pink-400 underline-offset-2">${esc(r.name)}</span><span class="ml-1.5 text-xs text-pink-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
+        <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-pink-700 group-hover:underline decoration-pink-400 underline-offset-2">${esc(r.name)}</span>${flag}<span class="ml-1.5 text-xs text-pink-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
         <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
         <td class="px-4 py-2 text-right tabular-nums text-slate-500">${r.ten == null ? '—' : r.ten.toFixed(1) + ' ด.'}</td>
         <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-pink-100/70 text-pink-700">${r.pct.toFixed(1)}%</span></td>
         <td class="px-4 py-2"><div class="h-2.5 bg-pink-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ec4899,#3b82f6)"></div></div></td>
-      </tr>`).join('');
+      </tr>`; }).join('');
     body.querySelectorAll('tr[data-team]').forEach(tr => tr.addEventListener('click', () => openTeamModal(tr.dataset.team)));
   }
   setText('team-count', rows.length);
