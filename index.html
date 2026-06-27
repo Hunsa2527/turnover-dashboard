@@ -618,7 +618,6 @@ function renderTeamSummary() {
   });
   const rows = [...m.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) }))
     .sort((a, b) => b.count - a.count);
-  const max = rows.length ? rows[0].count : 0;
   const body = document.getElementById('team-summary-body');
   if (!rows.length) { body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
   else {
@@ -636,10 +635,13 @@ function renderTeamSummary() {
     const rateLabel = viewMonths.length === 1 ? ('เดือน ' + viewMonths[0]) : ('เฉลี่ย/เดือน · ' + viewMonths.length + ' เดือน');
     // Headcount แสดงตามเดือนล่าสุดในมุมมองที่กรองอยู่ (กรองเดือนไหน = headcount เดือนนั้น); ไม่กรอง = เดือนล่าสุด
     const hcMonthShown = viewMonths.length ? viewMonths[viewMonths.length - 1] : HC_LATEST_MONTH;
+    // คำนวณ Turnover Rate ทุกทีมก่อน เพื่อหา max ไว้ normalize แถบ "สัดส่วน" (แถบอิงตาม Rate ไม่ใช่จำนวนคน)
+    rows.forEach(r => { r._rate = computeAvgRate(r.name, levByTeamMonth[r.name], viewMonths); });
+    const maxRate = rows.reduce((mx, r) => (r._rate != null && r._rate > mx ? r._rate : mx), 0);
     body.innerHTML = rows.map((r, i) => {
       const tr = teamTrend(r.name);
       const flag = tr && tr.flag ? `<span class="badge bg-rose-100 text-rose-700 ml-1.5" title="ลาออก 3 เดือนล่าสุด ${tr.recent} คน · 3 เดือนก่อนหน้า ${tr.prev} คน">⚠️ ${tr.prev > 0 ? '+' + Math.round(tr.pct) + '%' : 'พุ่ง'}</span>` : '';
-      const rate = computeAvgRate(r.name, levByTeamMonth[r.name], viewMonths);
+      const rate = r._rate;
       const rateCls = rate == null ? 'bg-slate-50 text-slate-400' : rate >= 10 ? 'bg-rose-100 text-rose-700' : rate >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-600';
       const rateTitle = rate == null ? 'ไม่มีข้อมูล headcount ของทีมนี้' : ('Turnover Rate ' + rateLabel + ' (คนออกในเดือน ÷ headcount เดือนนั้น แล้วเฉลี่ย)');
       const rateCell = `<td class="px-4 py-2 text-right tabular-nums"><span class="badge ${rateCls}" title="${rateTitle}">${rate == null ? '—' : rate.toFixed(1) + '%'}</span></td>`;
@@ -655,7 +657,7 @@ function renderTeamSummary() {
         <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
         ${hcCell}
         ${rateCell}
-        <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ef4444,#be123c)"></div></div></td>
+        <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden" title="${rate == null ? 'ไม่มีข้อมูล' : 'แถบอิงตาม Turnover Rate (' + rate.toFixed(1) + '%)'}"><div class="h-full rounded-full" style="width:${(rate != null && maxRate ? rate / maxRate * 100 : 0).toFixed(1)}%;background:${rate == null ? '#e2e8f0' : rate >= 10 ? '#be123c' : rate >= 5 ? '#f59e0b' : '#10b981'}"></div></div></td>
       </tr>`; }).join('');
     body.querySelectorAll('tr[data-team]').forEach(tr => tr.addEventListener('click', () => openTeamModal(tr.dataset.team)));
   }
