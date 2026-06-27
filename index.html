@@ -139,6 +139,17 @@
     </div>
   </div>
 
+  <!-- ───── Company-wide Turnover Rate ───── -->
+  <div class="anim mt-4" data-section="kpi">
+    <div class="card-hover rounded-2xl p-5 shadow-sm text-white flex items-center justify-between flex-wrap gap-3" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c,#ef4444);">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🏢 Turnover Rate รวมทั้งบริษัท</div>
+        <div class="mt-1 text-[11px] opacity-80" id="kpi-company-rate-sub">—</div>
+      </div>
+      <div class="flex items-baseline gap-1.5"><span id="kpi-company-rate" class="text-4xl font-extrabold tabular-nums">—</span><span class="text-lg opacity-80">%</span></div>
+    </div>
+  </div>
+
   <!-- ───── Charts & Insights ───── -->
   <div class="space-y-4 anim" data-section="charts">
     <!-- row 1 -->
@@ -336,7 +347,7 @@ document.getElementById('cutoff-display').textContent = CUTOFF_DATE;
 // รวมชื่อทีมที่เป็นทีมเดียวกันแต่เขียนต่างกัน (alias → ชื่อ canonical)
 function canonTeam(t) {
   t = String(t == null ? '' : t).trim();
-  const ALIAS = { 'ทีมคุณนิตินัย (NPL NPA ADMIN)': 'ทีมคุณนิตินัย' };
+  const ALIAS = { 'ทีมคุณนิตินัย (NPL NPA ADMIN)': 'ทีมคุณนิตินัย', 'ทีมคุณประไพ': 'ทีมคุณศิริลักษณ์' };
   return ALIAS[t] || t;
 }
 // กฎบังคับทีมตามชื่อแผนก (ทุกสาขา) — เพิ่มกฎใหม่ได้ที่นี่
@@ -419,7 +430,7 @@ async function loadData() {
     populateFilters();
     applyFilters();
     // โหลด headcount แบบไม่บล็อก — render ข้อมูลหลักก่อน แล้วเติม Turnover Rate เมื่อมาถึง
-    loadHeadcount().then(() => { try { renderTeamSummary(); } catch (e) {} });
+    loadHeadcount().then(() => { try { renderTeamSummary(); renderCompanyRate(); } catch (e) {} });
   } catch (e) { setError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 }
 function setLoading() { document.getElementById('table-body').innerHTML = '<tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>'; }
@@ -515,6 +526,40 @@ function renderKPIs() {
   setText('kpi-top-team-count', topTeam[1] ? `${topTeam[1].toLocaleString()} คน` : '—');
   setText('kpi-top-product', topProd[0] || '—');
   setText('kpi-top-product-count', topProd[1] ? `${topProd[1].toLocaleString()} คน` : '—');
+  renderCompanyRate();
+}
+
+// Turnover Rate รวมทั้งบริษัท = เฉลี่ย/เดือน ของ (คนออกทั้งบริษัทในเดือน ÷ headcount ทั้งบริษัทเดือนนั้น)
+function renderCompanyRate() {
+  const lev = {};            // เดือน -> คนออกทั้งบริษัท
+  const viewSet = new Set();
+  FILTERED.forEach(x => {
+    const mb = monthBucket(x.resign_date); if (!mb) return;
+    lev[mb] = (lev[mb] || 0) + 1;
+    if (HC_MONTH_SET.has(mb)) viewSet.add(mb);
+  });
+  const months = [...viewSet].sort();
+  let rate = null, levShown = 0, hcLast = 0;
+  if (months.length) {
+    let sum = 0, n = 0;
+    for (const M of months) {
+      let hc = 0;
+      for (const t in HC_BY_MONTH) { const v = HC_BY_MONTH[t][M]; if (v) hc += v; }
+      if (!hc) continue;
+      sum += (lev[M] || 0) / hc * 100;
+      n++;
+      levShown += (lev[M] || 0);
+    }
+    if (n) {
+      rate = sum / n;
+      const last = months[months.length - 1];
+      for (const t in HC_BY_MONTH) { const v = HC_BY_MONTH[t][last]; if (v) hcLast += v; }
+    }
+  }
+  setText('kpi-company-rate', rate == null ? '—' : rate.toFixed(1));
+  setText('kpi-company-rate-sub', rate == null
+    ? 'รอข้อมูล headcount'
+    : `เฉลี่ย/เดือน · คนออก ${levShown.toLocaleString()} คน · headcount ${hcLast.toLocaleString()} คน`);
 }
 
 // ───── Charts ─────
@@ -616,37 +661,43 @@ function renderTeamSummary() {
     if (!m.has(k)) m.set(k, { count: 0, tenure: [] });
     const o = m.get(k); o.count++; o.tenure.push(tenureMonths(r));
   });
-  const rows = [...m.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) }))
-    .sort((a, b) => b.count - a.count);
+  const rows = [...m.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) }));
+  // คนออกราย (ทีม × เดือน) + เซตเดือนในมุมมองปัจจุบัน (เฉพาะเดือนที่มี headcount) สำหรับ Turnover Rate เฉลี่ย/เดือน
+  const levByTeamMonth = {};
+  const viewMonthSet = new Set();
+  FILTERED.forEach(x => {
+    const mb = monthBucket(x.resign_date); if (!mb) return;
+    const t = x.team_lead || '(ไม่ระบุ)';
+    (levByTeamMonth[t] = levByTeamMonth[t] || {})[mb] = (levByTeamMonth[t][mb] || 0) + 1;
+    if (HC_MONTH_SET.has(mb)) viewMonthSet.add(mb);
+  });
+  const viewMonths = [...viewMonthSet].sort();
+  const rateLabel = viewMonths.length === 1 ? ('เดือน ' + viewMonths[0]) : ('เฉลี่ย/เดือน · ' + viewMonths.length + ' เดือน');
+  // Headcount แสดงตามเดือนล่าสุดในมุมมองที่กรองอยู่ (กรองเดือนไหน = headcount เดือนนั้น); ไม่กรอง = เดือนล่าสุด
+  const hcMonthShown = viewMonths.length ? viewMonths[viewMonths.length - 1] : HC_LATEST_MONTH;
+  // คำนวณ Turnover Rate ทุกทีม แล้ว "จัดอันดับตาราง = ตาม Turnover Rate (มากไปน้อย)"; ทีมที่ไม่มี rate อยู่ท้าย, เสมอกันใช้จำนวนลาออก
+  rows.forEach(r => {
+    r._rate = computeAvgRate(r.name, levByTeamMonth[r.name], viewMonths);
+    const hcm = HC_BY_MONTH[r.name];
+    r._hc = (hcMonthShown && hcm && hcm[hcMonthShown]) || HC_LATEST[r.name] || 0;
+  });
+  // จัดอันดับเฉพาะทีมที่ headcount ≥ 100 คน (ทีมเล็กกว่านี้ rate พุ่งง่ายเพราะตัวหารน้อย จึงไม่นำมาจัดอันดับ)
+  const HC_MIN = 100;
+  const ranked = rows.filter(r => r._hc >= HC_MIN)
+    .sort((a, b) => { const ra = a._rate == null ? -1 : a._rate, rb = b._rate == null ? -1 : b._rate; return rb !== ra ? rb - ra : b.count - a.count; });
+  const maxRate = ranked.reduce((mx, r) => (r._rate != null && r._rate > mx ? r._rate : mx), 0);
   const body = document.getElementById('team-summary-body');
-  if (!rows.length) { body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
+  if (!ranked.length) { body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">ไม่มีทีมที่ headcount ≥ ' + HC_MIN + ' คน</td></tr>'; }
   else {
     const ranks = ['bg-amber-100 text-amber-700 ring-1 ring-amber-300','bg-slate-100 text-slate-600 ring-1 ring-slate-300','bg-orange-100 text-orange-700 ring-1 ring-orange-300'];
-    // คนออกราย (ทีม × เดือน) + เซตเดือนในมุมมองปัจจุบัน (เฉพาะเดือนที่มี headcount) สำหรับ Turnover Rate เฉลี่ย/เดือน
-    const levByTeamMonth = {};
-    const viewMonthSet = new Set();
-    FILTERED.forEach(x => {
-      const mb = monthBucket(x.resign_date); if (!mb) return;
-      const t = x.team_lead || '(ไม่ระบุ)';
-      (levByTeamMonth[t] = levByTeamMonth[t] || {})[mb] = (levByTeamMonth[t][mb] || 0) + 1;
-      if (HC_MONTH_SET.has(mb)) viewMonthSet.add(mb);
-    });
-    const viewMonths = [...viewMonthSet].sort();
-    const rateLabel = viewMonths.length === 1 ? ('เดือน ' + viewMonths[0]) : ('เฉลี่ย/เดือน · ' + viewMonths.length + ' เดือน');
-    // Headcount แสดงตามเดือนล่าสุดในมุมมองที่กรองอยู่ (กรองเดือนไหน = headcount เดือนนั้น); ไม่กรอง = เดือนล่าสุด
-    const hcMonthShown = viewMonths.length ? viewMonths[viewMonths.length - 1] : HC_LATEST_MONTH;
-    // คำนวณ Turnover Rate ทุกทีมก่อน เพื่อหา max ไว้ normalize แถบ "สัดส่วน" (แถบอิงตาม Rate ไม่ใช่จำนวนคน)
-    rows.forEach(r => { r._rate = computeAvgRate(r.name, levByTeamMonth[r.name], viewMonths); });
-    const maxRate = rows.reduce((mx, r) => (r._rate != null && r._rate > mx ? r._rate : mx), 0);
-    body.innerHTML = rows.map((r, i) => {
+    body.innerHTML = ranked.map((r, i) => {
       const tr = teamTrend(r.name);
       const flag = tr && tr.flag ? `<span class="badge bg-rose-100 text-rose-700 ml-1.5" title="ลาออก 3 เดือนล่าสุด ${tr.recent} คน · 3 เดือนก่อนหน้า ${tr.prev} คน">⚠️ ${tr.prev > 0 ? '+' + Math.round(tr.pct) + '%' : 'พุ่ง'}</span>` : '';
       const rate = r._rate;
       const rateCls = rate == null ? 'bg-slate-50 text-slate-400' : rate >= 10 ? 'bg-rose-100 text-rose-700' : rate >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-600';
       const rateTitle = rate == null ? 'ไม่มีข้อมูล headcount ของทีมนี้' : ('Turnover Rate ' + rateLabel + ' (คนออกในเดือน ÷ headcount เดือนนั้น แล้วเฉลี่ย)');
       const rateCell = `<td class="px-4 py-2 text-right tabular-nums"><span class="badge ${rateCls}" title="${rateTitle}">${rate == null ? '—' : rate.toFixed(1) + '%'}</span></td>`;
-      const hcm = HC_BY_MONTH[r.name];
-      const hcVal = (hcMonthShown && hcm && hcm[hcMonthShown]) || HC_LATEST[r.name];
+      const hcVal = r._hc;
       const hcCell = `<td class="px-4 py-2 text-right tabular-nums text-slate-600" title="${hcVal ? 'headcount เดือน ' + (hcMonthShown || HC_LATEST_MONTH) : 'ไม่มีข้อมูล headcount ของทีมนี้'}">${hcVal ? hcVal.toLocaleString() : '—'}</td>`;
       return `
       <tr class="hover:bg-red-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
@@ -661,8 +712,8 @@ function renderTeamSummary() {
       </tr>`; }).join('');
     body.querySelectorAll('tr[data-team]').forEach(tr => tr.addEventListener('click', () => openTeamModal(tr.dataset.team)));
   }
-  setText('team-count', rows.length);
-  setText('team-total', total.toLocaleString());
+  setText('team-count', ranked.length);
+  setText('team-total', ranked.reduce((s, r) => s + r.count, 0).toLocaleString());
 }
 
 // ───── Table ─────
