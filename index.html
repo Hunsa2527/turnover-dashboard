@@ -110,7 +110,7 @@
     <!-- avg tenure -->
     <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#f87171,#ef4444);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">⏳ อายุงานเฉลี่ย</div>
-      <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-tenure" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">เดือน</span></div>
+      <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-tenure" class="text-2xl font-bold tabular-nums">—</span></div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-tenure-sub">ก่อนตัดสินใจลาออก</div>
     </div>
     <!-- early attrition -->
@@ -314,13 +314,20 @@ function tenureDays(r) {
   return d >= 0 ? d : null;
 }
 function tenureMonths(r) { const d = tenureDays(r); return d == null ? null : d / 30.44; }
+// อายุงานเป็น "X ปี Y เดือน"
+function fmtYM(months) {
+  if (months == null) return '—';
+  const totalM = Math.max(0, Math.round(months));
+  const y = Math.floor(totalM / 12), m = totalM % 12;
+  if (y > 0 && m > 0) return y + ' ปี ' + m + ' เดือน';
+  if (y > 0) return y + ' ปี';
+  return m + ' เดือน';
+}
 function fmtTenure(r) {
   const d = tenureDays(r);
   if (d == null) return '—';
   if (d < 31) return d + ' วัน';
-  const mo = d / 30.44;
-  if (mo < 12) return mo.toFixed(1) + ' ด.';
-  return (d / 365.25).toFixed(1) + ' ปี';
+  return fmtYM(d / 30.44);
 }
 
 const MONTH_NAMES_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -504,7 +511,7 @@ function renderKPIs() {
 
   // avg tenure
   const tm = avg(FILTERED.map(tenureMonths));
-  setText('kpi-tenure', tm == null ? '—' : tm.toFixed(1));
+  setText('kpi-tenure', fmtYM(tm));
 
   // early attrition (<6 เดือน = 183 วัน)
   const withTen = FILTERED.map(tenureDays).filter(d => d != null);
@@ -704,7 +711,7 @@ function renderTeamSummary() {
         <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-red-50 text-red-500'}">${i + 1}</span></td>
         <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-red-700 group-hover:underline decoration-red-400 underline-offset-2">${esc(r.name)}</span>${flag}<span class="ml-1.5 text-xs text-red-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
         <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
-        <td class="px-4 py-2 text-right tabular-nums text-slate-500">${r.ten == null ? '—' : r.ten.toFixed(1) + ' ด.'}</td>
+        <td class="px-4 py-2 text-right tabular-nums text-slate-500">${fmtYM(r.ten)}</td>
         <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
         ${hcCell}
         ${rateCell}
@@ -812,7 +819,7 @@ function openTeamModal(teamName) {
   document.getElementById('modal-stats').innerHTML = `
     ${stat(products.length, 'Product')}
     ${stat(depts.length, 'แผนก')}
-    ${stat(ten == null ? '—' : ten.toFixed(1)+' ด.', 'อายุงานเฉลี่ย')}
+    ${stat(fmtYM(ten), 'อายุงานเฉลี่ย')}
     ${stat(early, 'ลาออก < 6 ด.')}`;
 
   const sorted = [...modalCurrentRows].sort((a, b) => (b.resign_date || '').localeCompare(a.resign_date || ''));
