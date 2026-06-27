@@ -187,7 +187,8 @@
             <th class="px-4 py-3 text-right">จำนวนลาออก</th>
             <th class="px-4 py-3 text-right">อายุงานเฉลี่ย</th>
             <th class="px-4 py-3 text-right">% ของทั้งหมด</th>
-            <th class="px-4 py-3 text-right" title="คนออก ÷ headcount เดือนล่าสุด">Turnover Rate</th>
+            <th class="px-4 py-3 text-right" title="จำนวนพนักงานในทีม (headcount เดือนล่าสุด)">Headcount</th>
+            <th class="px-4 py-3 text-right" title="เฉลี่ยของ (คนออกในเดือน ÷ headcount เดือนนั้น) ข้ามเดือนที่เลือกอยู่">Turnover Rate</th>
             <th class="px-4 py-3 text-left w-1/4">สัดส่วน</th>
           </tr>
         </thead>
@@ -350,6 +351,8 @@ function teamForRow(dept, lead) {
 // ───── Headcount (สำหรับ Turnover Rate %) ─────
 let HC_LATEST = {};          // canonTeam -> headcount เดือนล่าสุด
 let HC_LATEST_MONTH = '';    // เดือนล่าสุดที่มี headcount
+let HC_BY_MONTH = {};        // canonTeam -> { 'YYYY-MM': headcount } (ใช้คำนวณ Rate เฉลี่ย/เดือน)
+let HC_MONTH_SET = new Set();// เซตของเดือนที่มี headcount
 async function loadHeadcount() {
   try {
     const res = await fetch(HEADCOUNT_CSV_URL + '&_=' + Date.now());
@@ -359,20 +362,37 @@ async function loadHeadcount() {
     const start = rows.length && /month/i.test(String(rows[0][0] || '')) ? 1 : 0;
     const byMonth = {};        // team -> { month: headcount }
     HC_LATEST_MONTH = '';
+    HC_MONTH_SET = new Set();
     for (let i = start; i < rows.length; i++) {
       const mo = (rows[i][0] || '').trim();
       const tm = canonTeam(rows[i][1]);
       const hc = parseInt(rows[i][2], 10) || 0;
       if (!mo || !tm) continue;
       (byMonth[tm] = byMonth[tm] || {})[mo] = (byMonth[tm][mo] || 0) + hc;
+      HC_MONTH_SET.add(mo);
       if (mo > HC_LATEST_MONTH) HC_LATEST_MONTH = mo;
     }
+    HC_BY_MONTH = byMonth;
     HC_LATEST = {};
     for (const tm in byMonth) {
       const ms = Object.keys(byMonth[tm]).sort();
       HC_LATEST[tm] = byMonth[tm][ms[ms.length - 1]];
     }
   } catch (e) { /* headcount เป็นข้อมูลเสริม — โหลดไม่ได้ก็ข้ามไป */ }
+}
+// Turnover Rate เฉลี่ย/เดือน: เฉลี่ย (คนออกในเดือน ÷ headcount เดือนนั้น) ข้ามทุกเดือนที่อยู่ในมุมมองปัจจุบัน
+// viewMonths = เดือนที่มี headcount และมีคนออก (จากทุกทีม) ในชุดที่กรองอยู่ → ตอบรับ filter เดือน/ปี/ช่วงวันที่
+function computeAvgRate(teamName, levByMonth, viewMonths) {
+  const hcm = HC_BY_MONTH[teamName];
+  if (!hcm || !viewMonths.length) return null;
+  let sum = 0, n = 0;
+  for (const mo of viewMonths) {
+    const h = hcm[mo];
+    if (!h) continue;                       // ไม่มี headcount เดือนนั้นสำหรับทีมนี้ → ข้าม
+    sum += ((levByMonth && levByMonth[mo]) || 0) / h * 100;
+    n++;
+  }
+  return n ? sum / n : null;
 }
 
 async function loadData() {
@@ -395,10 +415,11 @@ async function loadData() {
       product:     (r[6] || '').trim(),
       team_lead:   teamForRow(r[2], r[7]),
     })).filter(r => r.employee_id);
-    await loadHeadcount();
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
     applyFilters();
+    // โหลด headcount แบบไม่บล็อก — render ข้อมูลหลักก่อน แล้วเติม Turnover Rate เมื่อมาถึง
+    loadHeadcount().then(() => { try { renderTeamSummary(); } catch (e) {} });
   } catch (e) { setError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 }
 function setLoading() { document.getElementById('table-body').innerHTML = '<tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>'; }
@@ -599,16 +620,29 @@ function renderTeamSummary() {
     .sort((a, b) => b.count - a.count);
   const max = rows.length ? rows[0].count : 0;
   const body = document.getElementById('team-summary-body');
-  if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>'; }
   else {
     const ranks = ['bg-amber-100 text-amber-700 ring-1 ring-amber-300','bg-slate-100 text-slate-600 ring-1 ring-slate-300','bg-orange-100 text-orange-700 ring-1 ring-orange-300'];
+    // คนออกราย (ทีม × เดือน) + เซตเดือนในมุมมองปัจจุบัน (เฉพาะเดือนที่มี headcount) สำหรับ Turnover Rate เฉลี่ย/เดือน
+    const levByTeamMonth = {};
+    const viewMonthSet = new Set();
+    FILTERED.forEach(x => {
+      const mb = monthBucket(x.resign_date); if (!mb) return;
+      const t = x.team_lead || '(ไม่ระบุ)';
+      (levByTeamMonth[t] = levByTeamMonth[t] || {})[mb] = (levByTeamMonth[t][mb] || 0) + 1;
+      if (HC_MONTH_SET.has(mb)) viewMonthSet.add(mb);
+    });
+    const viewMonths = [...viewMonthSet].sort();
+    const rateLabel = viewMonths.length === 1 ? ('เดือน ' + viewMonths[0]) : ('เฉลี่ย/เดือน · ' + viewMonths.length + ' เดือน');
     body.innerHTML = rows.map((r, i) => {
       const tr = teamTrend(r.name);
       const flag = tr && tr.flag ? `<span class="badge bg-rose-100 text-rose-700 ml-1.5" title="ลาออก 3 เดือนล่าสุด ${tr.recent} คน · 3 เดือนก่อนหน้า ${tr.prev} คน">⚠️ ${tr.prev > 0 ? '+' + Math.round(tr.pct) + '%' : 'พุ่ง'}</span>` : '';
-      const hc = HC_LATEST[r.name];
-      const rate = hc ? r.count / hc * 100 : null;
+      const rate = computeAvgRate(r.name, levByTeamMonth[r.name], viewMonths);
       const rateCls = rate == null ? 'bg-slate-50 text-slate-400' : rate >= 10 ? 'bg-rose-100 text-rose-700' : rate >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-600';
-      const rateCell = `<td class="px-4 py-2 text-right tabular-nums"><span class="badge ${rateCls}" title="${hc ? 'คนออก ' + r.count + ' ÷ headcount ' + hc + ' (เดือน ' + HC_LATEST_MONTH + ')' : 'ไม่มีข้อมูล headcount ของทีมนี้'}">${rate == null ? '—' : rate.toFixed(1) + '%'}</span></td>`;
+      const rateTitle = rate == null ? 'ไม่มีข้อมูล headcount ของทีมนี้' : ('Turnover Rate ' + rateLabel + ' (คนออกในเดือน ÷ headcount เดือนนั้น แล้วเฉลี่ย)');
+      const rateCell = `<td class="px-4 py-2 text-right tabular-nums"><span class="badge ${rateCls}" title="${rateTitle}">${rate == null ? '—' : rate.toFixed(1) + '%'}</span></td>`;
+      const hcVal = HC_LATEST[r.name];
+      const hcCell = `<td class="px-4 py-2 text-right tabular-nums text-slate-600" title="${hcVal ? 'headcount เดือน ' + HC_LATEST_MONTH : 'ไม่มีข้อมูล headcount ของทีมนี้'}">${hcVal ? hcVal.toLocaleString() : '—'}</td>`;
       return `
       <tr class="hover:bg-red-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
         <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-red-50 text-red-500'}">${i + 1}</span></td>
@@ -616,6 +650,7 @@ function renderTeamSummary() {
         <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
         <td class="px-4 py-2 text-right tabular-nums text-slate-500">${r.ten == null ? '—' : r.ten.toFixed(1) + ' ด.'}</td>
         <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
+        ${hcCell}
         ${rateCell}
         <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ef4444,#be123c)"></div></div></td>
       </tr>`; }).join('');
