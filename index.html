@@ -11,43 +11,57 @@
 <style>
   body { font-family: 'IBM Plex Sans Thai', system-ui, -apple-system, sans-serif; }
   .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #f0abce; border-radius: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: #fdf2f8; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #fca5a5; border-radius: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #fef2f2; }
   th.sortable { cursor: pointer; user-select: none; }
-  th.sortable:hover { background: rgba(236,72,153,0.06); }
+  th.sortable:hover { background: rgba(220,38,38,0.06); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
   .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
-  .card-hover:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px rgba(219,39,119,0.35); }
+  .card-hover:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px rgba(220,38,38,0.32); }
   @keyframes floatUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .anim { animation: floatUp .5s ease both; }
-  .grad-text { background: linear-gradient(90deg,#db2777,#2563eb); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .grad-text { background: linear-gradient(90deg,#dc2626,#9f1239); -webkit-background-clip: text; background-clip: text; color: transparent; }
 </style>
 </head>
 <body class="min-h-screen text-slate-800" style="background:
-   radial-gradient(1200px 500px at 0% 0%, rgba(244,114,182,0.18), transparent 55%),
-   radial-gradient(1200px 500px at 100% 0%, rgba(59,130,246,0.16), transparent 55%),
-   linear-gradient(160deg,#fdf2f8 0%,#f5f8ff 45%,#eff6ff 100%);">
+   radial-gradient(1200px 500px at 0% 0%, rgba(239,68,68,0.14), transparent 55%),
+   radial-gradient(1200px 500px at 100% 0%, rgba(244,63,94,0.10), transparent 55%),
+   linear-gradient(160deg,#fef2f2 0%,#ffffff 45%,#fff1f2 100%);">
 
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=772640747&single=true&output=csv";
   const CUTOFF_DATE = "2026-01-02";
 </script>
 
+<!-- ───── Login Gate ───── -->
+<div id="login-gate" class="fixed inset-0 z-[100] flex items-center justify-center px-4" style="background:linear-gradient(160deg,#fef2f2,#ffffff 55%,#fff1f2);">
+  <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-red-100 p-7 text-center anim">
+    <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg" style="background:linear-gradient(135deg,#ef4444,#be123c);">🔒</div>
+    <h2 class="mt-4 text-lg font-bold grad-text">Turnover Insights</h2>
+    <p class="text-xs text-slate-500 mt-1">กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
+    <form id="login-form" class="mt-5 space-y-3">
+      <input id="login-code" type="password" autocomplete="off" placeholder="รหัสผ่าน" class="w-full text-center text-sm border border-red-200 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none">
+      <button type="submit" class="w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-white shadow transition hover:opacity-90" style="background:linear-gradient(135deg,#ef4444,#be123c);">เข้าสู่ระบบ</button>
+      <p id="login-error" class="text-xs text-red-600 h-4"></p>
+    </form>
+  </div>
+</div>
+
 <!-- ───── Header ───── -->
-<header class="glass border-b border-pink-200/50 sticky top-0 z-30 shadow-sm">
+<header class="glass border-b border-red-200/50 sticky top-0 z-30 shadow-sm">
   <div class="max-w-[1600px] mx-auto px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style="background:linear-gradient(135deg,#ec4899,#3b82f6);">📊</div>
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style="background:linear-gradient(135deg,#ef4444,#be123c);">📊</div>
       <div>
         <h1 class="text-xl font-bold grad-text">Turnover Insights</h1>
         <p class="text-xs text-slate-500">JMT Network — วิเคราะห์พนักงานลาออก (ตั้งแต่ <span id="cutoff-display"></span>)</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2 bg-white/70 border border-pink-200 rounded-xl px-3 py-1.5">
-        <label class="text-xs font-medium text-pink-600">👁️ มุมมอง</label>
-        <select id="view-selector" class="text-sm bg-transparent border-0 focus:ring-0 font-medium text-pink-700 cursor-pointer">
+      <div class="flex items-center gap-2 bg-white/70 border border-red-200 rounded-xl px-3 py-1.5">
+        <label class="text-xs font-medium text-red-600">👁️ มุมมอง</label>
+        <select id="view-selector" class="text-sm bg-transparent border-0 focus:ring-0 font-medium text-red-700 cursor-pointer">
           <option value="all">ทั้งหมด</option>
           <option value="kpi">KPI ภาพรวม</option>
           <option value="charts">กราฟ &amp; เชิงลึก</option>
@@ -55,11 +69,11 @@
           <option value="detail">รายละเอียดพนักงาน</option>
         </select>
       </div>
-      <div class="hidden sm:flex items-center gap-2 border-l border-pink-200/70 pl-3">
+      <div class="hidden sm:flex items-center gap-2 border-l border-red-200/70 pl-3">
         <span class="text-xs text-slate-400">อัปเดต</span>
         <span id="last-updated" class="text-xs font-medium text-slate-600">—</span>
       </div>
-      <button id="refresh-btn" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow transition hover:opacity-90" style="background:linear-gradient(135deg,#ec4899,#3b82f6);">🔄 Refresh</button>
+      <button id="refresh-btn" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow transition hover:opacity-90" style="background:linear-gradient(135deg,#ef4444,#be123c);">🔄 Refresh</button>
     </div>
   </div>
 </header>
@@ -70,62 +84,68 @@
   <div class="glass rounded-2xl border border-white/60 p-4 flex flex-wrap items-center gap-3 shadow-sm anim">
     <div class="flex items-center gap-2">
       <label class="text-xs font-medium text-slate-500">ปี</label>
-      <select id="filter-year" class="text-sm border border-pink-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"><option value="">ทั้งหมด</option></select>
+      <select id="filter-year" class="text-sm border border-red-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-red-400"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2">
       <label class="text-xs font-medium text-slate-500">เดือน</label>
-      <select id="filter-month" class="text-sm border border-pink-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"><option value="">ทั้งหมด</option></select>
+      <select id="filter-month" class="text-sm border border-red-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-red-400"><option value="">ทั้งหมด</option></select>
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-xs font-medium text-slate-500">วันที่ลาออก</label>
+      <input id="filter-date-from" type="date" title="ตั้งแต่วันที่" class="text-sm border border-red-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-red-400">
+      <span class="text-slate-400 text-xs">–</span>
+      <input id="filter-date-to" type="date" title="ถึงวันที่" class="text-sm border border-red-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-red-400">
     </div>
     <div class="flex items-center gap-2">
       <label class="text-xs font-medium text-slate-500">หัวหน้าทีม</label>
-      <select id="filter-team" class="text-sm border border-blue-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 min-w-[160px]"><option value="">ทั้งหมด</option></select>
+      <select id="filter-team" class="text-sm border border-rose-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-rose-400 focus:border-rose-400 min-w-[160px]"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2">
       <label class="text-xs font-medium text-slate-500">Product</label>
-      <select id="filter-product" class="text-sm border border-blue-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 min-w-[140px]"><option value="">ทั้งหมด</option></select>
+      <select id="filter-product" class="text-sm border border-rose-200 rounded-lg px-2 py-1.5 bg-white/80 focus:ring-2 focus:ring-rose-400 focus:border-rose-400 min-w-[140px]"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
       <span class="text-sm">🔍</span>
-      <input id="filter-search" type="search" placeholder="ค้นหา รหัส/ชื่อ/แผนก/ตำแหน่ง..." class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white/80 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 flex-1">
+      <input id="filter-search" type="search" placeholder="ค้นหา รหัส/ชื่อ/แผนก/ตำแหน่ง..." class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-red-400 flex-1">
     </div>
-    <button id="clear-filters" class="text-xs text-slate-400 hover:text-pink-600 underline">ล้าง filter</button>
-    <button id="export-csv" class="ml-auto text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition">⬇ Export CSV</button>
+    <button id="clear-filters" class="text-xs text-slate-400 hover:text-red-600 underline">ล้าง filter</button>
+    <button id="export-csv" class="ml-auto text-xs px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium transition">⬇ Export CSV</button>
   </div>
 
   <!-- ───── KPI Cards ───── -->
   <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 anim" data-section="kpi">
     <!-- total -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">👥 รวมลาออก</div>
       <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-total" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">คน</span></div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-total-sub">—</div>
     </div>
     <!-- avg tenure -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#ec4899,#db2777);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#f87171,#ef4444);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">⏳ อายุงานเฉลี่ย</div>
       <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-tenure" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">เดือน</span></div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-tenure-sub">ก่อนตัดสินใจลาออก</div>
     </div>
     <!-- early attrition -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#f43f5e,#e11d48);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#dc2626,#991b1b);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">⚡ ลาออกเร็ว</div>
       <div class="mt-2 flex items-baseline gap-1.5"><span id="kpi-early" class="text-3xl font-bold tabular-nums">—</span><span class="text-xs opacity-80">%</span></div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-early-sub">อยู่ไม่ถึง 6 เดือน</div>
     </div>
     <!-- peak month -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#fb7185,#f43f5e);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">📅 เดือนสูงสุด</div>
       <div id="kpi-peak" class="mt-2 text-xl font-bold truncate">—</div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-peak-sub">—</div>
     </div>
     <!-- top team -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#d946ef,#a21caf);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#b91c1c,#7f1d1d);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🎯 ทีมกระทบสูงสุด</div>
       <div id="kpi-top-team" class="mt-2 text-lg font-bold leading-tight truncate">—</div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-top-team-count">—</div>
     </div>
     <!-- top product -->
-    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
+    <div class="card-hover rounded-2xl p-4 shadow-sm text-white" style="background:linear-gradient(135deg,#e11d48,#9f1239);">
       <div class="text-[11px] font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">📦 Product สูงสุด</div>
       <div id="kpi-top-product" class="mt-2 text-lg font-bold leading-tight truncate">—</div>
       <div class="mt-1 text-[11px] opacity-80" id="kpi-top-product-count">—</div>
@@ -138,28 +158,28 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-8">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ec4899,#3b82f6)"></span> แนวโน้มการลาออกต่อเดือน</h3>
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ef4444,#be123c)"></span> แนวโน้มการลาออกต่อเดือน</h3>
           <span id="trend-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">—</span>
         </div>
         <div class="h-[290px]"><canvas id="chart-monthly"></canvas></div>
       </div>
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
-        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-pink-500"></span> การกระจายอายุงาน</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-red-500"></span> การกระจายอายุงาน</h3>
         <div class="h-[290px]"><canvas id="chart-tenure"></canvas></div>
       </div>
     </div>
     <!-- row 2 -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
-        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-fuchsia-500"></span> สัดส่วนตามหัวหน้าทีม</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> สัดส่วนตามหัวหน้าทีม</h3>
         <div class="h-[270px]"><canvas id="chart-team"></canvas></div>
       </div>
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
-        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-blue-500"></span> Product สูงสุด (Top 10)</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> Product สูงสุด (Top 10)</h3>
         <div class="h-[270px]"><canvas id="chart-product"></canvas></div>
       </div>
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
-        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-sky-500"></span> แผนกที่ลาออกสูงสุด (Top 10)</h3>
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> แผนกที่ลาออกสูงสุด (Top 10)</h3>
         <div class="h-[270px]"><canvas id="chart-dept"></canvas></div>
       </div>
     </div>
@@ -167,13 +187,13 @@
 
   <!-- ───── Team Lead Summary ───── -->
   <div class="glass rounded-2xl border border-white/60 shadow-sm anim" data-section="team">
-    <div class="px-5 py-3 border-b border-pink-100 flex items-center justify-between">
-      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-fuchsia-500"></span> สรุปตามหัวหน้าทีม</h3>
-      <span class="text-xs text-slate-400"><span id="team-count" class="font-semibold text-fuchsia-600">0</span> ทีม · รวม <span id="team-total" class="font-semibold text-fuchsia-600">0</span> คน</span>
+    <div class="px-5 py-3 border-b border-red-100 flex items-center justify-between">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> สรุปตามหัวหน้าทีม</h3>
+      <span class="text-xs text-slate-400"><span id="team-count" class="font-semibold text-rose-600">0</span> ทีม · รวม <span id="team-total" class="font-semibold text-rose-600">0</span> คน</span>
     </div>
     <div class="overflow-x-auto scrollbar-thin">
       <table class="w-full text-sm">
-        <thead class="text-slate-500 text-xs uppercase bg-pink-50/40">
+        <thead class="text-slate-500 text-xs uppercase bg-red-50/40">
           <tr>
             <th class="px-4 py-3 text-left w-12">#</th>
             <th class="px-4 py-3 text-left">หัวหน้าทีม</th>
@@ -183,20 +203,20 @@
             <th class="px-4 py-3 text-left w-1/4">สัดส่วน</th>
           </tr>
         </thead>
-        <tbody id="team-summary-body" class="divide-y divide-pink-50"><tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">—</td></tr></tbody>
+        <tbody id="team-summary-body" class="divide-y divide-red-50"><tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">—</td></tr></tbody>
       </table>
     </div>
   </div>
 
   <!-- ───── Detail Table ───── -->
   <div class="glass rounded-2xl border border-white/60 shadow-sm anim" data-section="detail">
-    <div class="px-5 py-3 border-b border-blue-100 flex items-center justify-between">
-      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-blue-500"></span> รายละเอียดพนักงานที่ลาออก</h3>
-      <span class="text-xs text-slate-400"><span id="row-count" class="font-semibold text-blue-600">0</span> รายการ</span>
+    <div class="px-5 py-3 border-b border-rose-100 flex items-center justify-between">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> รายละเอียดพนักงานที่ลาออก</h3>
+      <span class="text-xs text-slate-400"><span id="row-count" class="font-semibold text-rose-600">0</span> รายการ</span>
     </div>
     <div class="overflow-x-auto scrollbar-thin">
       <table class="w-full text-sm">
-        <thead class="text-slate-500 text-xs uppercase bg-blue-50/40">
+        <thead class="text-slate-500 text-xs uppercase bg-rose-50/40">
           <tr>
             <th class="sortable px-4 py-3 text-left" data-sort="employee_id">รหัสพนักงาน</th>
             <th class="sortable px-4 py-3 text-left" data-sort="full_name">ชื่อสกุล</th>
@@ -209,14 +229,14 @@
             <th class="sortable px-4 py-3 text-left" data-sort="team_lead">หัวหน้าทีม</th>
           </tr>
         </thead>
-        <tbody id="table-body" class="divide-y divide-blue-50"><tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr></tbody>
+        <tbody id="table-body" class="divide-y divide-rose-50"><tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
-    <div class="px-5 py-3 border-t border-blue-100 flex items-center justify-between text-xs text-slate-500">
-      <div>หน้า <span id="page-current" class="font-semibold text-blue-600">1</span> / <span id="page-total" class="font-semibold">1</span></div>
+    <div class="px-5 py-3 border-t border-rose-100 flex items-center justify-between text-xs text-slate-500">
+      <div>หน้า <span id="page-current" class="font-semibold text-rose-600">1</span> / <span id="page-total" class="font-semibold">1</span></div>
       <div class="flex gap-2">
-        <button id="page-prev" class="px-3 py-1 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition">← ก่อนหน้า</button>
-        <button id="page-next" class="px-3 py-1 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed transition">ถัดไป →</button>
+        <button id="page-prev" class="px-3 py-1 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition">← ก่อนหน้า</button>
+        <button id="page-next" class="px-3 py-1 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition">ถัดไป →</button>
       </div>
     </div>
   </div>
@@ -229,16 +249,16 @@
 <!-- ───── Team Detail Modal ───── -->
 <div id="team-modal" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="modal-backdrop"></div>
-  <div class="relative max-w-5xl mx-auto mt-12 mb-12 bg-white rounded-3xl shadow-2xl border border-pink-100 max-h-[85vh] flex flex-col">
-    <div class="px-6 py-4 border-b border-pink-100 rounded-t-3xl flex items-center justify-between" style="background:linear-gradient(90deg,#fdf2f8,#eff6ff);">
+  <div class="relative max-w-5xl mx-auto mt-12 mb-12 bg-white rounded-3xl shadow-2xl border border-red-100 max-h-[85vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-red-100 rounded-t-3xl flex items-center justify-between" style="background:linear-gradient(90deg,#fef2f2,#fff1f2);">
       <div>
-        <div class="text-xs font-semibold text-pink-500 uppercase tracking-wider">รายชื่อพนักงานที่ลาออก</div>
+        <div class="text-xs font-semibold text-red-500 uppercase tracking-wider">รายชื่อพนักงานที่ลาออก</div>
         <h2 id="modal-title" class="text-xl font-bold text-slate-900 mt-1">—</h2>
         <div id="modal-subtitle" class="text-xs text-slate-500 mt-0.5">—</div>
       </div>
-      <button id="modal-close" class="w-9 h-9 rounded-full hover:bg-pink-100 transition flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl">✕</button>
+      <button id="modal-close" class="w-9 h-9 rounded-full hover:bg-red-100 transition flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl">✕</button>
     </div>
-    <div id="modal-stats" class="px-6 py-3 border-b border-pink-100/60 grid grid-cols-4 gap-3 text-center text-xs" style="background:rgba(253,242,248,0.5);"></div>
+    <div id="modal-stats" class="px-6 py-3 border-b border-red-100/60 grid grid-cols-4 gap-3 text-center text-xs" style="background:rgba(254,242,242,0.6);"></div>
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-500 text-xs uppercase sticky top-0">
@@ -259,7 +279,7 @@
     </div>
     <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/50 rounded-b-3xl flex items-center justify-between text-xs">
       <span class="text-slate-400">💡 คลิก ✕ หรือกด ESC เพื่อปิด</span>
-      <button id="modal-export" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition">⬇ Export ทีมนี้</button>
+      <button id="modal-export" class="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium transition">⬇ Export ทีมนี้</button>
     </div>
   </div>
 </div>
@@ -383,10 +403,12 @@ function fillSelectMonths(id, codes) {
 }
 function applyFilters() {
   const y = val('filter-year'), mo = val('filter-month'), t = val('filter-team'), p = val('filter-product');
+  const df = val('filter-date-from'), dt = val('filter-date-to');
   const q = document.getElementById('filter-search').value.trim().toLowerCase();
   FILTERED = RAW.filter(r => {
     if (y && bucketYear(r.resign_date) !== y) return false;
     if (mo && bucketMonth(r.resign_date) !== mo) return false;
+    if (df || dt) { const rd = (r.resign_date || '').slice(0, 10); if (!rd) return false; if (df && rd < df) return false; if (dt && rd > dt) return false; }
     if (t && r.team_lead !== t) return false;
     if (p && r.product !== p) return false;
     if (q && !`${r.employee_id} ${r.full_name} ${r.department} ${r.position}`.toLowerCase().includes(q)) return false;
@@ -443,8 +465,8 @@ function renderKPIs() {
 }
 
 // ───── Charts ─────
-const PINK = '#ec4899', BLUE = '#3b82f6';
-const PALETTE = ['#ec4899','#3b82f6','#f472b6','#0ea5e9','#db2777','#60a5fa','#f9a8d4','#38bdf8','#be185d','#93c5fd','#a21caf','#6366f1'];
+const PINK = '#ef4444', BLUE = '#e11d48';
+const PALETTE = ['#ef4444','#f43f5e','#dc2626','#fb7185','#b91c1c','#e11d48','#f87171','#be123c','#991b1b','#fca5a5','#7f1d1d','#9f1239'];
 
 function renderCharts() {
   // Monthly trend (area)
@@ -455,7 +477,7 @@ function renderCharts() {
   drawChart('chart-monthly', 'line', {
     labels: months.map(monthLabelTH),
     datasets: [{ label: 'จำนวนคน', data: counts, borderColor: PINK, borderWidth: 3,
-      backgroundColor: (ctx) => { const c = ctx.chart.ctx; const g = c.createLinearGradient(0,0,0,290); g.addColorStop(0,'rgba(236,72,153,0.28)'); g.addColorStop(1,'rgba(59,130,246,0.02)'); return g; },
+      backgroundColor: (ctx) => { const c = ctx.chart.ctx; const g = c.createLinearGradient(0,0,0,290); g.addColorStop(0,'rgba(239,68,68,0.30)'); g.addColorStop(1,'rgba(244,63,94,0.02)'); return g; },
       fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: PINK, pointBorderWidth: 2 }]
   }, { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } } });
 
@@ -483,7 +505,7 @@ function renderCharts() {
   drawChart('chart-tenure', 'bar', {
     labels: buckets.map(b => b.label),
     datasets: [{ label: 'จำนวนคน', data: bucketCounts,
-      backgroundColor: ['#fb7185','#f472b6','#e879f9','#818cf8','#60a5fa','#38bdf8'], borderRadius: 6, maxBarThickness: 40 }]
+      backgroundColor: ['#fecaca','#fca5a5','#f87171','#ef4444','#dc2626','#991b1b'], borderRadius: 6, maxBarThickness: 40 }]
   }, { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } } });
 
   // Team donut
@@ -506,7 +528,7 @@ function renderCharts() {
   const deptTop = sortMap(deptMap, 10);
   drawChart('chart-dept', 'bar', {
     labels: [...deptTop.keys()],
-    datasets: [{ label: 'จำนวนคน', data: [...deptTop.values()], backgroundColor: '#d946ef', borderRadius: 5, maxBarThickness: 22 }]
+    datasets: [{ label: 'จำนวนคน', data: [...deptTop.values()], backgroundColor: '#e11d48', borderRadius: 5, maxBarThickness: 22 }]
   }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
 }
 function drawChart(id, type, data, options) {
@@ -552,13 +574,13 @@ function renderTeamSummary() {
       const tr = teamTrend(r.name);
       const flag = tr && tr.flag ? `<span class="badge bg-rose-100 text-rose-700 ml-1.5" title="ลาออก 3 เดือนล่าสุด ${tr.recent} คน · 3 เดือนก่อนหน้า ${tr.prev} คน">⚠️ ${tr.prev > 0 ? '+' + Math.round(tr.pct) + '%' : 'พุ่ง'}</span>` : '';
       return `
-      <tr class="hover:bg-pink-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
-        <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-pink-50 text-pink-500'}">${i + 1}</span></td>
-        <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-pink-700 group-hover:underline decoration-pink-400 underline-offset-2">${esc(r.name)}</span>${flag}<span class="ml-1.5 text-xs text-pink-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
+      <tr class="hover:bg-red-50/50 transition cursor-pointer group" data-team="${esc(r.name)}">
+        <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-red-50 text-red-500'}">${i + 1}</span></td>
+        <td class="px-4 py-2"><span class="font-medium text-slate-700 group-hover:text-red-700 group-hover:underline decoration-red-400 underline-offset-2">${esc(r.name)}</span>${flag}<span class="ml-1.5 text-xs text-red-400 opacity-0 group-hover:opacity-100 transition">👁️</span></td>
         <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
         <td class="px-4 py-2 text-right tabular-nums text-slate-500">${r.ten == null ? '—' : r.ten.toFixed(1) + ' ด.'}</td>
-        <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-pink-100/70 text-pink-700">${r.pct.toFixed(1)}%</span></td>
-        <td class="px-4 py-2"><div class="h-2.5 bg-pink-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ec4899,#3b82f6)"></div></div></td>
+        <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
+        <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(max ? r.count/max*100 : 0).toFixed(1)}%;background:linear-gradient(90deg,#ef4444,#be123c)"></div></div></td>
       </tr>`; }).join('');
     body.querySelectorAll('tr[data-team]').forEach(tr => tr.addEventListener('click', () => openTeamModal(tr.dataset.team)));
   }
@@ -584,18 +606,18 @@ function renderTable() {
   else {
     body.innerHTML = slice.map((r, i) => {
       const d = tenureDays(r);
-      const tenBadge = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : d < 365 ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
+      const tenBadge = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : d < 365 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600';
       return `
-      <tr class="${i % 2 ? 'bg-white/40' : 'bg-white/70'} hover:bg-pink-50/40 transition">
+      <tr class="${i % 2 ? 'bg-white/40' : 'bg-white/70'} hover:bg-red-50/40 transition">
         <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(r.employee_id)}</td>
         <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
         <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.department)}</td>
         <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.position)}</td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-sky-50 text-sky-600">${esc(fmtDate(r.start_date))}</span></td>
-        <td class="px-4 py-2 text-xs"><span class="badge bg-pink-50 text-pink-600">${esc(fmtDate(r.resign_date))}</span></td>
+        <td class="px-4 py-2 text-xs"><span class="badge bg-rose-50 text-rose-600">${esc(fmtDate(r.start_date))}</span></td>
+        <td class="px-4 py-2 text-xs"><span class="badge bg-red-50 text-red-600">${esc(fmtDate(r.resign_date))}</span></td>
         <td class="px-4 py-2 text-right text-xs"><span class="badge ${tenBadge}">${fmtTenure(r)}</span></td>
-        <td class="px-4 py-2"><span class="badge bg-blue-50 text-blue-600">${esc(r.product) || '—'}</span></td>
-        <td class="px-4 py-2"><span class="badge bg-fuchsia-50 text-fuchsia-600">${esc(r.team_lead) || '—'}</span></td>
+        <td class="px-4 py-2"><span class="badge bg-rose-50 text-rose-600">${esc(r.product) || '—'}</span></td>
+        <td class="px-4 py-2"><span class="badge bg-rose-50 text-rose-600">${esc(r.team_lead) || '—'}</span></td>
       </tr>`;
     }).join('');
   }
@@ -613,10 +635,10 @@ function setText(id, v) { const el = document.getElementById(id); if (el) el.tex
 // ═══════════════════════════════════════════════════════════════
 //   EVENTS
 // ═══════════════════════════════════════════════════════════════
-['filter-year','filter-month','filter-team','filter-product'].forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+['filter-year','filter-month','filter-team','filter-product','filter-date-from','filter-date-to'].forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
 document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 200));
 document.getElementById('clear-filters').addEventListener('click', () => {
-  ['filter-year','filter-month','filter-team','filter-product'].forEach(id => document.getElementById(id).value = '');
+  ['filter-year','filter-month','filter-team','filter-product','filter-date-from','filter-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('filter-search').value = '';
   applyFilters();
 });
@@ -669,24 +691,24 @@ function openTeamModal(teamName) {
   const body = document.getElementById('modal-body');
   body.innerHTML = sorted.length ? sorted.map((r, i) => {
     const d = tenureDays(r);
-    const tb = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600';
+    const tb = d == null ? 'bg-slate-50 text-slate-400' : d < 183 ? 'bg-rose-50 text-rose-600' : 'bg-rose-50 text-rose-600';
     return `
-    <tr class="${i % 2 ? 'bg-pink-50/20' : 'bg-white'} hover:bg-pink-50/40 transition">
+    <tr class="${i % 2 ? 'bg-red-50/20' : 'bg-white'} hover:bg-red-50/40 transition">
       <td class="px-4 py-2 text-slate-400 text-xs">${i + 1}</td>
       <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(r.employee_id)}</td>
       <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
       <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.department)}</td>
       <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.position)}</td>
-      <td class="px-4 py-2 text-xs"><span class="badge bg-sky-50 text-sky-600">${esc(fmtDate(r.start_date))}</span></td>
-      <td class="px-4 py-2 text-xs"><span class="badge bg-pink-50 text-pink-600">${esc(fmtDate(r.resign_date))}</span></td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-rose-50 text-rose-600">${esc(fmtDate(r.start_date))}</span></td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-red-50 text-red-600">${esc(fmtDate(r.resign_date))}</span></td>
       <td class="px-4 py-2 text-right text-xs"><span class="badge ${tb}">${fmtTenure(r)}</span></td>
-      <td class="px-4 py-2"><span class="badge bg-blue-50 text-blue-600">${esc(r.product) || '—'}</span></td>
+      <td class="px-4 py-2"><span class="badge bg-rose-50 text-rose-600">${esc(r.product) || '—'}</span></td>
     </tr>`; }).join('') : '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
 
   document.getElementById('team-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
-function stat(v, label) { return `<div class="bg-white rounded-xl py-2 border border-pink-100"><div class="text-pink-600 font-bold text-base">${v}</div><div class="text-slate-400">${label}</div></div>`; }
+function stat(v, label) { return `<div class="bg-white rounded-xl py-2 border border-red-100"><div class="text-red-600 font-bold text-base">${v}</div><div class="text-slate-400">${label}</div></div>`; }
 function closeTeamModal() { document.getElementById('team-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 document.getElementById('modal-close').addEventListener('click', closeTeamModal);
 document.getElementById('modal-backdrop').addEventListener('click', closeTeamModal);
@@ -696,8 +718,45 @@ document.getElementById('modal-export').addEventListener('click', () => {
   exportCSV(modalCurrentRows, `turnover_${modalCurrentTeam.replace(/[^฀-๿a-zA-Z0-9_-]+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
 });
 
-// ───── go ─────
-loadData();
+// ═══════════════════════════════════════════════════════════════
+//   LOGIN GATE (soft gate — passcode เดียวร่วมกัน)
+//   เก็บเป็น SHA-256 hash (ไม่ใช่ plaintext) เพราะ repo เป็น public
+//   เปลี่ยน passcode: คำนวณ sha256 ใหม่ของรหัสที่ต้องการ แล้ววางที่ ACCESS_HASH
+//   (เช่นใน console:  crypto.subtle.digest('SHA-256', new TextEncoder().encode('รหัสใหม่')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))) )
+// ═══════════════════════════════════════════════════════════════
+const ACCESS_HASH = "143eb7990a593e6bb74df79810e19065200d4f188c5afb7a935516b359fb825b"; // default passcode: JMT-HR-2026
+async function sha256Hex(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function unlockDashboard() {
+  const g = document.getElementById('login-gate');
+  if (g) g.style.display = 'none';
+  document.body.style.overflow = '';
+  if (!window.__started) { window.__started = true; loadData(); }
+}
+async function handleLogin(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('login-code');
+  const err = document.getElementById('login-error');
+  const h = await sha256Hex(input.value.trim());
+  if (h === ACCESS_HASH) {
+    sessionStorage.setItem('to_auth', '1');
+    err.textContent = '';
+    unlockDashboard();
+  } else {
+    err.textContent = 'รหัสผ่านไม่ถูกต้อง';
+    input.value = '';
+    input.focus();
+  }
+}
+document.getElementById('login-form').addEventListener('submit', handleLogin);
+if (sessionStorage.getItem('to_auth') === '1') {
+  unlockDashboard();
+} else {
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('login-code').focus(), 100);
+}
 </script>
 </body>
 </html>
