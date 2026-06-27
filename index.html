@@ -330,6 +330,21 @@ document.getElementById('cutoff-display').textContent = CUTOFF_DATE;
 // ═══════════════════════════════════════════════════════════════
 //   LOAD
 // ═══════════════════════════════════════════════════════════════
+// รวมชื่อทีมที่เป็นทีมเดียวกันแต่เขียนต่างกัน (alias → ชื่อ canonical)
+function canonTeam(t) {
+  t = String(t == null ? '' : t).trim();
+  const ALIAS = { 'ทีมคุณนิตินัย (NPL NPA ADMIN)': 'ทีมคุณนิตินัย' };
+  return ALIAS[t] || t;
+}
+// กฎบังคับทีมตามชื่อแผนก (ทุกสาขา) — เพิ่มกฎใหม่ได้ที่นี่
+const DEPT_TEAM_OVERRIDE = [
+  { re: /FA[\s_-]*UNSECURED/i, team: 'ทีมคุณภคพล' },
+];
+function teamForRow(dept, lead) {
+  const d = String(dept == null ? '' : dept);
+  for (const o of DEPT_TEAM_OVERRIDE) if (o.re.test(d)) return o.team;
+  return canonTeam(lead);
+}
 async function loadData() {
   if (!CSV_URL || CSV_URL.includes('<<')) { setError('⚠️ ยังไม่ได้ตั้ง CSV_URL'); return; }
   setLoading();
@@ -348,7 +363,7 @@ async function loadData() {
       start_date:  (r[4] || '').trim(),
       resign_date: (r[5] || '').trim(),
       product:     (r[6] || '').trim(),
-      team_lead:   (r[7] || '').trim(),
+      team_lead:   teamForRow(r[2], r[7]),
     })).filter(r => r.employee_id);
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
