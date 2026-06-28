@@ -32,6 +32,7 @@
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=772640747&single=true&output=csv";
   const HEADCOUNT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=743996224&single=true&output=csv";
+  const RESIGN_REASON_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=507311267&single=true&output=csv";
   const CUTOFF_DATE = "2026-01-02";
 </script>
 
@@ -179,6 +180,20 @@
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
         <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> แผนกที่ลาออกสูงสุด (Top 10)</h3>
         <div class="h-[270px]"><canvas id="chart-dept"></canvas></div>
+      </div>
+    </div>
+    <!-- row 3: Exit reason -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-8">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ef4444,#be123c)"></span> เหตุผลการลาออก</h3>
+          <span id="reason-added-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">—</span>
+        </div>
+        <div class="h-[290px]"><canvas id="chart-reason"></canvas></div>
+      </div>
+      <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-4">
+        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full bg-rose-500"></span> ประเภท (ลาออก / พ้นสภาพ)</h3>
+        <div class="h-[290px]"><canvas id="chart-type"></canvas></div>
       </div>
     </div>
   </div>
@@ -398,6 +413,47 @@ async function loadHeadcount() {
     }
   } catch (e) { /* headcount เป็นข้อมูลเสริม — โหลดไม่ได้ก็ข้ามไป */ }
 }
+
+// ───── Exit reason (จาก resign_reason: เติมคนที่ขาด + แนบเหตุผล/ประเภท) ─────
+let REASON_BY_ID = {};   // emp_id -> { type, reason }
+const RR_EXCLUDE_CO = new Set([": บริษัท โจวี่ จำกัด","บริษัท เค.ที.แอพไพรซัล จำกัด: บริษัท เค.ที.แอพไพรซัล จำกัด",": รับจ้างเหมาบริการ (แม่บ้าน)","JAYMART INSURANCE: บริษัท เจมาร์ท ประกันภัย จำกัด (มหาชน)","บริษัท ทรู แวลูเอชั่น จำกัด: บริษัท ทรู แวลูเอชั่น จำกัด"]);
+const RR_EXCLUDE_ID = new Set(["7777771","7777775","7777776","7777777","7777779","7777780","9999999","7777781"]);
+async function loadResignReason() {
+  try {
+    const res = await fetch(RESIGN_REASON_CSV_URL + '&_=' + Date.now());
+    if (!res.ok) return;
+    const rows = Papa.parse(await res.text(), { skipEmptyLines: true }).data;
+    if (!rows.length) return;
+    const H = rows[0].map(h => String(h == null ? '' : h).trim().toLowerCase());
+    const ci = n => H.indexOf(n);
+    const cE = ci('employee_id'), cN = ci('full_name'), cD = ci('department'), cCo = ci('company'),
+          cT = ci('type'), cS = ci('start_date'), cR = ci('resign_date'), cCat = ci('reason_category');
+    if (cE < 0) return;
+    REASON_BY_ID = {};
+    const existing = new Set(RAW.map(r => r.employee_id));
+    let added = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      const eid = String(r[cE] == null ? '' : r[cE]).trim(); if (!eid) continue;
+      const company = cCo >= 0 ? String(r[cCo] || '').trim() : '';
+      if (RR_EXCLUDE_CO.has(company) || RR_EXCLUDE_ID.has(eid)) continue;
+      const type = cT >= 0 ? String(r[cT] || '').trim() : '';
+      const reason = (cCat >= 0 ? String(r[cCat] || '').trim() : '') || 'ไม่ระบุ';
+      REASON_BY_ID[eid] = { type, reason };
+      if (!existing.has(eid)) {
+        const dept = cD >= 0 ? String(r[cD] || '').trim() : '';
+        RAW.push({ employee_id: eid, full_name: cN >= 0 ? String(r[cN] || '').trim() : '', department: dept, position: '',
+          start_date: cS >= 0 ? String(r[cS] || '').trim() : '', resign_date: cR >= 0 ? String(r[cR] || '').trim() : '', product: '',
+          team_lead: teamForRow(dept, ''), _added: true, _reason: reason, _type: type });
+        existing.add(eid); added++;
+      }
+    }
+    // แนบเหตุผล/ประเภทให้ทุก leaver (รวมที่มาจาก dashboard_data เดิม)
+    RAW.forEach(x => { const m = REASON_BY_ID[x.employee_id]; if (m) { if (!x._reason) x._reason = m.reason; if (!x._type) x._type = m.type; } });
+    RR_ADDED = added;
+  } catch (e) { /* เสริม — โหลดไม่ได้ก็ข้าม */ }
+}
+let RR_ADDED = 0;
 // Turnover Rate เฉลี่ย/เดือน: เฉลี่ย (คนออกในเดือน ÷ headcount เดือนนั้น) ข้ามทุกเดือนที่อยู่ในมุมมองปัจจุบัน
 // viewMonths = เดือนที่มี headcount และมีคนออก (จากทุกทีม) ในชุดที่กรองอยู่ → ตอบรับ filter เดือน/ปี/ช่วงวันที่
 function computeAvgRate(teamName, levByMonth, viewMonths) {
@@ -433,6 +489,7 @@ async function loadData() {
       product:     (r[6] || '').trim(),
       team_lead:   teamForRow(r[2], r[7]),
     })).filter(r => r.employee_id);
+    await loadResignReason();   // เติมคนที่ขาด (มีใน Resignretire แต่ไม่มีใน HR) + แนบเหตุผล/ประเภท
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
     applyFilters();
@@ -635,6 +692,26 @@ function renderCharts() {
     labels: [...deptTop.keys()],
     datasets: [{ label: 'จำนวนคน', data: [...deptTop.values()], backgroundColor: '#e11d48', borderRadius: 5, maxBarThickness: 22 }]
   }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
+
+  // Exit reason (เหตุผลการลาออก) — เฉพาะคนที่มีข้อมูลเหตุผล
+  const reasonMap = new Map();
+  FILTERED.forEach(r => { if (!r._reason) return; reasonMap.set(r._reason, (reasonMap.get(r._reason) || 0) + 1); });
+  const reasonSorted = [...reasonMap.entries()].sort((a, b) => b[1] - a[1]);
+  drawChart('chart-reason', 'bar', {
+    labels: reasonSorted.map(e => e[0]),
+    datasets: [{ label: 'จำนวนคน', data: reasonSorted.map(e => e[1]), backgroundColor: PALETTE, borderRadius: 5, maxBarThickness: 26 }]
+  }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
+  const withReason = FILTERED.filter(r => r._reason).length;
+  const rb = document.getElementById('reason-added-badge');
+  if (rb) { rb.textContent = `มีเหตุผล ${withReason.toLocaleString()} คน` + (RR_ADDED ? ` · เติมจาก Resignretire ${RR_ADDED.toLocaleString()}` : ''); }
+
+  // ประเภท (ลาออก/พ้นสภาพ)
+  const typeMap = new Map();
+  FILTERED.forEach(r => { if (!r._type) return; typeMap.set(r._type, (typeMap.get(r._type) || 0) + 1); });
+  drawChart('chart-type', 'doughnut', {
+    labels: [...typeMap.keys()],
+    datasets: [{ data: [...typeMap.values()], backgroundColor: ['#ef4444', '#f59e0b', '#94a3b8'], borderWidth: 2, borderColor: '#fff' }]
+  }, { cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, font: { size: 11 }, padding: 10 } } } });
 }
 function drawChart(id, type, data, options) {
   if (charts[id]) charts[id].destroy();
