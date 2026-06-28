@@ -414,9 +414,8 @@ async function loadHeadcount() {
   } catch (e) { /* headcount เป็นข้อมูลเสริม — โหลดไม่ได้ก็ข้ามไป */ }
 }
 
-// ───── Exit reason (จาก resign_reason: เติมคนที่ขาด + แนบเหตุผล/ประเภท) ─────
+// ───── Exit reason (จาก resign_reason: แนบเหตุผล/ประเภทให้คนลาออกเดิม — ไม่เติมคนใหม่) ─────
 let REASON_BY_ID = {};   // emp_id -> { type, reason }
-const RR_EXCLUDE_CO = new Set([": บริษัท โจวี่ จำกัด","บริษัท เค.ที.แอพไพรซัล จำกัด: บริษัท เค.ที.แอพไพรซัล จำกัด",": รับจ้างเหมาบริการ (แม่บ้าน)","JAYMART INSURANCE: บริษัท เจมาร์ท ประกันภัย จำกัด (มหาชน)","บริษัท ทรู แวลูเอชั่น จำกัด: บริษัท ทรู แวลูเอชั่น จำกัด"]);
 const RR_EXCLUDE_ID = new Set(["7777771","7777775","7777776","7777777","7777779","7777780","9999999","7777781"]);
 async function loadResignReason() {
   try {
@@ -426,34 +425,21 @@ async function loadResignReason() {
     if (!rows.length) return;
     const H = rows[0].map(h => String(h == null ? '' : h).trim().toLowerCase());
     const ci = n => H.indexOf(n);
-    const cE = ci('employee_id'), cN = ci('full_name'), cD = ci('department'), cCo = ci('company'),
-          cT = ci('type'), cS = ci('start_date'), cR = ci('resign_date'), cCat = ci('reason_category');
+    const cE = ci('employee_id'), cT = ci('type'), cCat = ci('reason_category');
     if (cE < 0) return;
     REASON_BY_ID = {};
-    const existing = new Set(RAW.map(r => r.employee_id));
-    let added = 0;
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       const eid = String(r[cE] == null ? '' : r[cE]).trim(); if (!eid) continue;
-      const company = cCo >= 0 ? String(r[cCo] || '').trim() : '';
-      if (RR_EXCLUDE_CO.has(company) || RR_EXCLUDE_ID.has(eid)) continue;
+      if (RR_EXCLUDE_ID.has(eid)) continue;
       const type = cT >= 0 ? String(r[cT] || '').trim() : '';
       const reason = (cCat >= 0 ? String(r[cCat] || '').trim() : '') || 'ไม่ระบุ';
       REASON_BY_ID[eid] = { type, reason };
-      if (!existing.has(eid)) {
-        const dept = cD >= 0 ? String(r[cD] || '').trim() : '';
-        RAW.push({ employee_id: eid, full_name: cN >= 0 ? String(r[cN] || '').trim() : '', department: dept, position: '',
-          start_date: cS >= 0 ? String(r[cS] || '').trim() : '', resign_date: cR >= 0 ? String(r[cR] || '').trim() : '', product: '',
-          team_lead: teamForRow(dept, ''), _added: true, _reason: reason, _type: type });
-        existing.add(eid); added++;
-      }
     }
-    // แนบเหตุผล/ประเภทให้ทุก leaver (รวมที่มาจาก dashboard_data เดิม)
-    RAW.forEach(x => { const m = REASON_BY_ID[x.employee_id]; if (m) { if (!x._reason) x._reason = m.reason; if (!x._type) x._type = m.type; } });
-    RR_ADDED = added;
+    // แนบเหตุผล/ประเภทให้เฉพาะ leaver เดิม (ไม่ push คนใหม่เข้า RAW = จำนวนคนเท่าเดิม)
+    RAW.forEach(x => { const m = REASON_BY_ID[x.employee_id]; if (m) { x._reason = m.reason; x._type = m.type; } });
   } catch (e) { /* เสริม — โหลดไม่ได้ก็ข้าม */ }
 }
-let RR_ADDED = 0;
 // Turnover Rate เฉลี่ย/เดือน: เฉลี่ย (คนออกในเดือน ÷ headcount เดือนนั้น) ข้ามทุกเดือนที่อยู่ในมุมมองปัจจุบัน
 // viewMonths = เดือนที่มี headcount และมีคนออก (จากทุกทีม) ในชุดที่กรองอยู่ → ตอบรับ filter เดือน/ปี/ช่วงวันที่
 function computeAvgRate(teamName, levByMonth, viewMonths) {
