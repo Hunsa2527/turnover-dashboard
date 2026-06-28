@@ -186,7 +186,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
       <div class="glass rounded-2xl border border-white/60 p-5 shadow-sm lg:col-span-8">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ef4444,#be123c)"></span> เหตุผลการลาออก</h3>
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><span class="w-1.5 h-4 rounded-full" style="background:linear-gradient(180deg,#ef4444,#be123c)"></span> เหตุผลการลาออก (เฉพาะลาออกสมัครใจ)</h3>
           <span id="reason-added-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">—</span>
         </div>
         <div class="h-[290px]"><canvas id="chart-reason"></canvas></div>
@@ -693,17 +693,17 @@ function renderCharts() {
     datasets: [{ label: 'จำนวนคน', data: [...deptTop.values()], backgroundColor: '#e11d48', borderRadius: 5, maxBarThickness: 22 }]
   }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
 
-  // Exit reason (เหตุผลการลาออก) — เฉพาะคนที่มีข้อมูลเหตุผล
+  // Exit reason — วิเคราะห์เฉพาะ "ลาออกสมัครใจ" (type=ลาออก) ไม่รวมพ้นสภาพ
   const reasonMap = new Map();
-  FILTERED.forEach(r => { if (!r._reason) return; reasonMap.set(r._reason, (reasonMap.get(r._reason) || 0) + 1); });
+  FILTERED.forEach(r => { if (!r._reason || r._type !== 'ลาออก') return; reasonMap.set(r._reason, (reasonMap.get(r._reason) || 0) + 1); });
   const reasonSorted = [...reasonMap.entries()].sort((a, b) => b[1] - a[1]);
   drawChart('chart-reason', 'bar', {
     labels: reasonSorted.map(e => e[0]),
     datasets: [{ label: 'จำนวนคน', data: reasonSorted.map(e => e[1]), backgroundColor: PALETTE, borderRadius: 5, maxBarThickness: 26 }]
   }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { display: false } } } });
-  const withReason = FILTERED.filter(r => r._reason).length;
+  const voluntary = FILTERED.filter(r => r._type === 'ลาออก').length;
   const rb = document.getElementById('reason-added-badge');
-  if (rb) { rb.textContent = `มีเหตุผล ${withReason.toLocaleString()} คน` + (RR_ADDED ? ` · เติมจาก Resignretire ${RR_ADDED.toLocaleString()}` : ''); }
+  if (rb) { rb.textContent = `เฉพาะลาออกสมัครใจ ${voluntary.toLocaleString()} คน (ไม่รวมพ้นสภาพ)`; }
 
   // ประเภท (ลาออก/พ้นสภาพ)
   const typeMap = new Map();
