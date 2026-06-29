@@ -140,14 +140,21 @@
     </div>
   </div>
 
-  <!-- ───── Company-wide Turnover Rate ───── -->
-  <div class="anim mt-4" data-section="kpi">
+  <!-- ───── Company-wide Turnover Rate + แจ้งลาออกล่วงหน้า ───── -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 anim mt-4" data-section="kpi">
     <div class="card-hover rounded-2xl p-5 shadow-sm text-white flex items-center justify-between flex-wrap gap-3" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c,#ef4444);">
       <div>
         <div class="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🏢 Turnover Rate รวมทั้งบริษัท</div>
         <div class="mt-1 text-[11px] opacity-80" id="kpi-company-rate-sub">—</div>
       </div>
       <div class="flex items-baseline gap-1.5"><span id="kpi-company-rate" class="text-4xl font-extrabold tabular-nums">—</span><span class="text-lg opacity-80">%</span></div>
+    </div>
+    <div class="card-hover rounded-2xl p-5 shadow-sm text-white flex items-center justify-between flex-wrap gap-3" style="background:linear-gradient(135deg,#b45309,#d97706,#f59e0b);">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🔜 แจ้งลาออกล่วงหน้า</div>
+        <div class="mt-1 text-[11px] opacity-80" id="kpi-upcoming-sub">—</div>
+      </div>
+      <div class="flex items-baseline gap-1.5"><span id="kpi-upcoming" class="text-4xl font-extrabold tabular-nums">—</span><span class="text-lg opacity-80">คน</span></div>
     </div>
   </div>
 
@@ -414,8 +421,9 @@ async function loadHeadcount() {
   } catch (e) { /* headcount เป็นข้อมูลเสริม — โหลดไม่ได้ก็ข้ามไป */ }
 }
 
-// ───── Exit reason (จาก resign_reason: แนบเหตุผล/ประเภทให้คนลาออกเดิม — ไม่เติมคนใหม่) ─────
+// ───── Exit reason + แจ้งลาออกล่วงหน้า (จาก resign_reason) ─────
 let REASON_BY_ID = {};   // emp_id -> { type, reason }
+let UPCOMING = [];       // คนแจ้งลาออกล่วงหน้า (วันลาออก > วันนี้) — จาก Resignretire ไม่ปนยอดที่ผ่านมา
 const RR_EXCLUDE_ID = new Set(["7777771","7777775","7777776","7777777","7777779","7777780","9999999","7777781"]);
 async function loadResignReason() {
   try {
@@ -425,9 +433,10 @@ async function loadResignReason() {
     if (!rows.length) return;
     const H = rows[0].map(h => String(h == null ? '' : h).trim().toLowerCase());
     const ci = n => H.indexOf(n);
-    const cE = ci('employee_id'), cT = ci('type'), cCat = ci('reason_category');
+    const cE = ci('employee_id'), cN = ci('full_name'), cD = ci('department'), cT = ci('type'), cR = ci('resign_date'), cCat = ci('reason_category');
     if (cE < 0) return;
-    REASON_BY_ID = {};
+    const todayISO = new Date().toISOString().slice(0, 10);
+    REASON_BY_ID = {}; UPCOMING = [];
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       const eid = String(r[cE] == null ? '' : r[cE]).trim(); if (!eid) continue;
@@ -435,10 +444,24 @@ async function loadResignReason() {
       const type = cT >= 0 ? String(r[cT] || '').trim() : '';
       const reason = (cCat >= 0 ? String(r[cCat] || '').trim() : '') || 'ไม่ระบุ';
       REASON_BY_ID[eid] = { type, reason };
+      const rdate = cR >= 0 ? String(r[cR] || '').trim() : '';
+      if (rdate && rdate > todayISO) {
+        UPCOMING.push({ employee_id: eid, full_name: cN >= 0 ? String(r[cN] || '').trim() : '',
+          department: cD >= 0 ? String(r[cD] || '').trim() : '', type, reason, resign_date: rdate });
+      }
     }
     // แนบเหตุผล/ประเภทให้เฉพาะ leaver เดิม (ไม่ push คนใหม่เข้า RAW = จำนวนคนเท่าเดิม)
     RAW.forEach(x => { const m = REASON_BY_ID[x.employee_id]; if (m) { x._reason = m.reason; x._type = m.type; } });
   } catch (e) { /* เสริม — โหลดไม่ได้ก็ข้าม */ }
+}
+// การ์ด "แจ้งลาออกล่วงหน้า" (upcoming) — สรุปคนที่ประกาศลาออกแต่ยังไม่ถึงวันออก
+function renderUpcoming() {
+  const n = UPCOMING.length;
+  setText('kpi-upcoming', n.toLocaleString());
+  const byM = {};
+  UPCOMING.forEach(u => { const m = (u.resign_date || '').slice(0, 7); if (m) byM[m] = (byM[m] || 0) + 1; });
+  const sub = Object.keys(byM).sort().map(m => monthLabelTH(m) + ' ' + byM[m]).join(' · ');
+  setText('kpi-upcoming-sub', n ? sub : 'ยังไม่มีคนแจ้งล่วงหน้า');
 }
 // Turnover Rate เฉลี่ย/เดือน: เฉลี่ย (คนออกในเดือน ÷ headcount เดือนนั้น) ข้ามทุกเดือนที่อยู่ในมุมมองปัจจุบัน
 // viewMonths = เดือนที่มี headcount และมีคนออก (จากทุกทีม) ในชุดที่กรองอยู่ → ตอบรับ filter เดือน/ปี/ช่วงวันที่
@@ -475,7 +498,8 @@ async function loadData() {
       product:     (r[6] || '').trim(),
       team_lead:   teamForRow(r[2], r[7]),
     })).filter(r => r.employee_id);
-    await loadResignReason();   // เติมคนที่ขาด (มีใน Resignretire แต่ไม่มีใน HR) + แนบเหตุผล/ประเภท
+    await loadResignReason();   // แนบเหตุผล/ประเภท + เก็บคนแจ้งลาออกล่วงหน้า (UPCOMING)
+    renderUpcoming();
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
     applyFilters();
