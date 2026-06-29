@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HR Data Center — JMT Network</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'IBM Plex Sans Thai', system-ui, -apple-system, sans-serif; }
+  .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
+  .card-hover:hover { transform: translateY(-4px); box-shadow: 0 22px 48px -20px rgba(220,38,38,0.34); }
+  @keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .anim { animation: floatUp .5s ease both; }
+  .grad-text { background: linear-gradient(90deg,#dc2626,#9f1239); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:9999px; font-size:11px; font-weight:600; }
+</style>
+</head>
+<body class="min-h-screen text-slate-800" style="background:
+   radial-gradient(1200px 500px at 0% 0%, rgba(239,68,68,0.14), transparent 55%),
+   radial-gradient(1200px 500px at 100% 0%, rgba(244,63,94,0.10), transparent 55%),
+   linear-gradient(160deg,#fef2f2 0%,#ffffff 45%,#fff1f2 100%);">
+
+<!-- ───── Header ───── -->
+<header class="glass border-b border-red-200/50 sticky top-0 z-30 shadow-sm">
+  <div class="max-w-[1300px] mx-auto px-6 py-3.5 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style="background:linear-gradient(135deg,#ef4444,#be123c);">🏛️</div>
+      <div>
+        <h1 class="text-xl font-bold grad-text">HR Data Center</h1>
+        <p class="text-xs text-slate-500">JMT Network — ศูนย์รวม Dashboard ทรัพยากรบุคคล</p>
+      </div>
+    </div>
+    <div class="text-xs text-slate-400" id="today"></div>
+  </div>
+</header>
+
+<main class="max-w-[1300px] mx-auto px-6 py-8">
+
+  <!-- intro -->
+  <div class="anim mb-7">
+    <h2 class="text-2xl font-bold text-slate-800">ภาพรวมระบบข้อมูล HR</h2>
+    <p class="text-sm text-slate-500 mt-1">เลือก Dashboard ที่ต้องการดู — แต่ละหมวดเชื่อมแหล่งข้อมูลของตัวเอง อัปเดตอัตโนมัติ</p>
+  </div>
+
+  <!-- ───── Dashboard cards ───── -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+    <!-- Turnover (LIVE) -->
+    <a href="index.html" class="card-hover anim block rounded-2xl p-5 bg-white shadow-sm border border-red-100 relative overflow-hidden" style="animation-delay:.02s">
+      <div class="absolute top-4 right-4"><span class="badge bg-green-100 text-green-700">● พร้อมใช้</span></div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow mb-3" style="background:linear-gradient(135deg,#ef4444,#be123c);">📊</div>
+      <h3 class="text-lg font-bold text-slate-800">Turnover &amp; การลาออก</h3>
+      <p class="text-sm text-slate-500 mt-1 mb-3">วิเคราะห์พนักงานลาออก · Turnover Rate · อายุงาน · เหตุผล · แจ้งลาออกล่วงหน้า</p>
+      <div class="flex items-end gap-4 text-sm">
+        <div><div class="text-2xl font-extrabold text-red-600 tabular-nums" id="t-leavers">—</div><div class="text-[11px] text-slate-400">คนลาออก (ตั้งแต่ ม.ค.)</div></div>
+        <div><div class="text-2xl font-extrabold text-rose-500 tabular-nums" id="t-month">—</div><div class="text-[11px] text-slate-400">เดือนสูงสุด</div></div>
+      </div>
+      <div class="mt-3 text-xs font-semibold text-red-600">เปิด Dashboard →</div>
+    </a>
+
+    <!-- Headcount & Movement -->
+    <div class="card-hover anim rounded-2xl p-5 bg-white/60 shadow-sm border border-slate-200 relative" style="animation-delay:.06s">
+      <div class="absolute top-4 right-4"><span class="badge bg-amber-100 text-amber-700">🛠️ กำลังพัฒนา</span></div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow mb-3" style="background:linear-gradient(135deg,#f59e0b,#d97706);">👥</div>
+      <h3 class="text-lg font-bold text-slate-700">Headcount &amp; การเคลื่อนไหว</h3>
+      <p class="text-sm text-slate-500 mt-1 mb-3">กำลังคน · เข้า-ออก-โอนย้าย · Beginning/Ending/Average HC รายเดือน รายบริษัท</p>
+      <div class="text-xs text-slate-400">เร็วๆ นี้</div>
+    </div>
+
+    <!-- Recruitment -->
+    <div class="card-hover anim rounded-2xl p-5 bg-white/60 shadow-sm border border-slate-200 relative" style="animation-delay:.10s">
+      <div class="absolute top-4 right-4"><span class="badge bg-amber-100 text-amber-700">🛠️ กำลังพัฒนา</span></div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow mb-3" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">🎯</div>
+      <h3 class="text-lg font-bold text-slate-700">Recruitment / สรรหา</h3>
+      <p class="text-sm text-slate-500 mt-1 mb-3">ตำแหน่งเปิด · ผู้สมัคร · funnel การจ้าง · เวลาในการสรรหา · แหล่งที่มา</p>
+      <div class="text-xs text-slate-400">เร็วๆ นี้</div>
+    </div>
+
+    <!-- Time & Attendance -->
+    <div class="card-hover anim rounded-2xl p-5 bg-white/60 shadow-sm border border-slate-200 relative" style="animation-delay:.14s">
+      <div class="absolute top-4 right-4"><span class="badge bg-amber-100 text-amber-700">🛠️ กำลังพัฒนา</span></div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow mb-3" style="background:linear-gradient(135deg,#10b981,#047857);">⏰</div>
+      <h3 class="text-lg font-bold text-slate-700">Time &amp; Attendance</h3>
+      <p class="text-sm text-slate-500 mt-1 mb-3">ขาด · ลา · มาสาย · OT · สรุปการเข้างานรายทีม/รายเดือน</p>
+      <div class="text-xs text-slate-400">เร็วๆ นี้</div>
+    </div>
+
+    <!-- Payroll (restricted) -->
+    <div class="card-hover anim rounded-2xl p-5 bg-white/60 shadow-sm border border-slate-200 relative" style="animation-delay:.18s">
+      <div class="absolute top-4 right-4"><span class="badge bg-red-100 text-red-700">🔒 จำกัดสิทธิ์</span></div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow mb-3" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">💰</div>
+      <h3 class="text-lg font-bold text-slate-700">Payroll / ค่าตอบแทน</h3>
+      <p class="text-sm text-slate-500 mt-1 mb-3">ฐานเงินเดือน · ต้นทุนกำลังคน · โครงสร้างค่าตอบแทน <span class="text-red-500">(ข้อมูลละเอียดอ่อน — เฉพาะผู้มีสิทธิ์)</span></p>
+      <div class="text-xs text-slate-400">รอระบบจำกัดสิทธิ์ (login)</div>
+    </div>
+
+    <!-- placeholder / add more -->
+    <div class="anim rounded-2xl p-5 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center text-slate-400" style="animation-delay:.22s">
+      <div class="text-3xl mb-2">＋</div>
+      <div class="text-sm font-medium">เพิ่มหมวดข้อมูลใหม่</div>
+      <div class="text-[11px] mt-1">Performance · Training · Leave …</div>
+    </div>
+
+  </div>
+
+  <!-- footer note -->
+  <div class="anim mt-8 text-xs text-slate-400 border-t border-red-100 pt-4" style="animation-delay:.26s">
+    <p>🔒 ข้อมูลที่มีชื่อ/ค่าตอบแทนเป็นข้อมูลส่วนบุคคล (PDPA) — แสดงเฉพาะหมวดภาพรวมที่ไม่ระบุตัวตน ส่วนข้อมูลรายบุคคลจะเปิดเมื่อมีระบบจำกัดสิทธิ์</p>
+    <p class="mt-1">อัปเดตล่าสุด: <span id="updated"></span></p>
+  </div>
+
+</main>
+
+<script>
+  const TURNOVER_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYPkcapX8y7PQNCXqeCefTU8QVvEJXP8HOIH8zIDyjcM3W6Z9yh9_gxCXTxxmfsTuds4kGYUBYmf0n/pub?gid=772640747&single=true&output=csv";
+  const MONTH_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  document.getElementById('today').textContent = new Date().toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' });
+  // วันที่ตามปฏิทินของวันลาออก ลบ 1 วัน = เดือน fiscal (สอดคล้องกับ dashboard หลัก)
+  function bucketMonth(d){ const m=String(d||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return null; const dt=new Date(Date.UTC(+m[1],+m[2]-1,+m[3])); dt.setUTCDate(dt.getUTCDate()-1); return dt.getUTCMonth(); }
+  fetch(TURNOVER_CSV + '&_=' + Date.now()).then(r=>r.text()).then(text=>{
+    const rows = Papa.parse(text, { skipEmptyLines:true }).data;
+    const start = rows.length && rows[0][0] && !/^\d/.test(rows[0][0]) ? 1 : 0;
+    const data = rows.slice(start).filter(r => (r[0]||'').trim());
+    document.getElementById('t-leavers').textContent = data.length.toLocaleString();
+    const cnt = {};
+    data.forEach(r => { const m = bucketMonth(r[5]); if (m!=null) cnt[m] = (cnt[m]||0)+1; });
+    let best=null; for (const m in cnt) if (best==null || cnt[m]>cnt[best]) best=m;
+    document.getElementById('t-month').textContent = best!=null ? MONTH_TH[best] : '—';
+    document.getElementById('updated').textContent = new Date().toLocaleString('th-TH');
+  }).catch(()=>{ document.getElementById('updated').textContent = new Date().toLocaleString('th-TH'); });
+</script>
+
+</body>
+</html>
