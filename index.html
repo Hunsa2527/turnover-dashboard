@@ -448,6 +448,17 @@ async function loadHeadcount() {
       HC_MONTH_SET.add(mo);
       if (mo > HC_LATEST_MONTH) HC_LATEST_MONTH = mo;
     }
+    // แก้ off-by-one ของ headcount: ฝั่ง n8n นับเดือนจากวันลาออกตรงๆ ทำให้คนที่ลาออก "มีผลวันที่ 1"
+    // (วันสุดท้ายทำงานคือสิ้นเดือนก่อนหน้า) ถูกนับเกินในเดือนนั้น → หักออกตามทีม/เดือน
+    // (ฝั่งคนลาออกใช้ monthBucket ลบ 1 วันถูกต้องอยู่แล้ว จึงหักเฉพาะ headcount ให้สอดคล้องกัน)
+    RAW.forEach(r => {
+      if (RR_EXCLUDE_ID.has(r.employee_id)) return;          // ผู้บริหารที่ไม่นับ headcount อยู่แล้ว
+      const m = String(r.resign_date || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (!m || m[3] !== '01') return;                        // เฉพาะลาออกมีผลวันที่ 1
+      const mo = m[1] + '-' + m[2];                            // เดือนปฏิทินของวันลาออก (เดือนที่ n8n นับเกิน)
+      const tm = r.team_lead;                                  // canonTeam แล้ว (จาก teamForRow)
+      if (byMonth[tm] && byMonth[tm][mo]) byMonth[tm][mo] = Math.max(0, byMonth[tm][mo] - 1);
+    });
     HC_BY_MONTH = byMonth;
     HC_LATEST = {};
     for (const tm in byMonth) {
