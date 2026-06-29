@@ -149,9 +149,9 @@
       </div>
       <div class="flex items-baseline gap-1.5"><span id="kpi-company-rate" class="text-4xl font-extrabold tabular-nums">—</span><span class="text-lg opacity-80">%</span></div>
     </div>
-    <div class="card-hover rounded-2xl p-5 shadow-sm text-white flex items-center justify-between flex-wrap gap-3" style="background:linear-gradient(135deg,#b45309,#d97706,#f59e0b);">
+    <div id="card-upcoming" class="card-hover rounded-2xl p-5 shadow-sm text-white flex items-center justify-between flex-wrap gap-3 cursor-pointer" title="คลิกเพื่อดูรายชื่อ" style="background:linear-gradient(135deg,#b45309,#d97706,#f59e0b);">
       <div>
-        <div class="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🔜 แจ้งลาออกล่วงหน้า</div>
+        <div class="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">🔜 แจ้งลาออกล่วงหน้า <span class="text-[10px] font-normal opacity-80">👁️ คลิกดูรายชื่อ</span></div>
         <div class="mt-1 text-[11px] opacity-80" id="kpi-upcoming-sub">—</div>
       </div>
       <div class="flex items-baseline gap-1.5"><span id="kpi-upcoming" class="text-4xl font-extrabold tabular-nums">—</span><span class="text-lg opacity-80">คน</span></div>
@@ -302,6 +302,42 @@
     <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/50 rounded-b-3xl flex items-center justify-between text-xs">
       <span class="text-slate-400">💡 คลิก ✕ หรือกด ESC เพื่อปิด</span>
       <button id="modal-export" class="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium transition">⬇ Export ทีมนี้</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───── Upcoming (แจ้งลาออกล่วงหน้า) Modal ───── -->
+<div id="upcoming-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" id="up-backdrop"></div>
+  <div class="relative max-w-4xl mx-auto mt-12 mb-12 bg-white rounded-3xl shadow-2xl border border-amber-100 max-h-[85vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-amber-100 rounded-t-3xl flex items-center justify-between" style="background:linear-gradient(90deg,#fffbeb,#fef3c7);">
+      <div>
+        <div class="text-xs font-semibold text-amber-600 uppercase tracking-wider">🔜 แจ้งลาออกล่วงหน้า (ยังไม่ถึงวันออก)</div>
+        <h2 id="up-title" class="text-xl font-bold text-slate-900 mt-1">—</h2>
+        <div id="up-subtitle" class="text-xs text-slate-500 mt-0.5">—</div>
+      </div>
+      <button id="up-close" class="w-9 h-9 rounded-full hover:bg-amber-100 transition flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl">✕</button>
+    </div>
+    <div id="up-stats" class="px-6 py-3 border-b border-amber-100/60 grid grid-cols-3 gap-3 text-center text-xs" style="background:rgba(255,251,235,0.6);"></div>
+    <div class="flex-1 overflow-y-auto scrollbar-thin">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-500 text-xs uppercase sticky top-0">
+          <tr>
+            <th class="px-4 py-3 text-left w-12">#</th>
+            <th class="px-4 py-3 text-left">รหัส</th>
+            <th class="px-4 py-3 text-left">ชื่อสกุล</th>
+            <th class="px-4 py-3 text-left">แผนก</th>
+            <th class="px-4 py-3 text-left">ประเภท</th>
+            <th class="px-4 py-3 text-left">วันลาออก (แจ้งไว้)</th>
+            <th class="px-4 py-3 text-left">เหตุผล</th>
+          </tr>
+        </thead>
+        <tbody id="up-body" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+    <div class="px-6 py-3 border-t border-slate-200 bg-slate-50/50 rounded-b-3xl flex items-center justify-between text-xs">
+      <span class="text-slate-400">💡 คลิก ✕ หรือกด ESC เพื่อปิด · เรียงตามวันลาออกใกล้สุด</span>
+      <button id="up-export" class="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg font-medium transition">⬇ Export รายชื่อ</button>
     </div>
   </div>
 </div>
@@ -938,6 +974,46 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.
 document.getElementById('modal-export').addEventListener('click', () => {
   if (!modalCurrentRows.length) return;
   exportCSV(modalCurrentRows, `turnover_${modalCurrentTeam.replace(/[^฀-๿a-zA-Z0-9_-]+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`);
+});
+
+// ═══════════════════════════════════════════════════════════════
+//   UPCOMING (แจ้งลาออกล่วงหน้า) MODAL
+// ═══════════════════════════════════════════════════════════════
+function openUpcomingModal() {
+  if (!UPCOMING.length) return;
+  const sorted = [...UPCOMING].sort((a, b) => (a.resign_date || '').localeCompare(b.resign_date || ''));
+  setText('up-title', 'แจ้งลาออกล่วงหน้า');
+  setText('up-subtitle', `${UPCOMING.length.toLocaleString()} คน · วันลาออกเป็นอนาคต (จาก Resignretire)`);
+  const byType = {};
+  UPCOMING.forEach(u => { byType[u.type] = (byType[u.type] || 0) + 1; });
+  document.getElementById('up-stats').innerHTML =
+    stat(UPCOMING.length, 'รวม') + stat(byType['ลาออก'] || 0, 'ลาออก') + stat(byType['พ้นสภาพ'] || 0, 'พ้นสภาพ');
+  document.getElementById('up-body').innerHTML = sorted.map((u, i) => `
+    <tr class="${i % 2 ? 'bg-amber-50/20' : 'bg-white'} hover:bg-amber-50/40 transition">
+      <td class="px-4 py-2 text-slate-400 text-xs">${i + 1}</td>
+      <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(u.employee_id)}</td>
+      <td class="px-4 py-2 font-medium text-slate-800">${esc(u.full_name)}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(u.department)}</td>
+      <td class="px-4 py-2 text-xs"><span class="badge ${u.type === 'ลาออก' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'}">${esc(u.type) || '—'}</span></td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-amber-50 text-amber-700">${esc(fmtDate(u.resign_date))}</span></td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(u.reason)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">ไม่มีข้อมูล</td></tr>';
+  document.getElementById('upcoming-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeUpcomingModal() { document.getElementById('upcoming-modal').classList.add('hidden'); document.body.style.overflow = ''; }
+document.getElementById('card-upcoming').addEventListener('click', openUpcomingModal);
+document.getElementById('up-close').addEventListener('click', closeUpcomingModal);
+document.getElementById('up-backdrop').addEventListener('click', closeUpcomingModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('upcoming-modal').classList.contains('hidden')) closeUpcomingModal(); });
+document.getElementById('up-export').addEventListener('click', () => {
+  if (!UPCOMING.length) return;
+  const headers = ['รหัสพนักงาน','ชื่อสกุล','แผนก','ประเภท','วันลาออก(แจ้งไว้)','เหตุผล'];
+  const rows = [...UPCOMING].sort((a,b)=>(a.resign_date||'').localeCompare(b.resign_date||''))
+    .map(u => [u.employee_id, u.full_name, u.department, u.type, fmtDate(u.resign_date), u.reason]);
+  const csv = [headers, ...rows].map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `แจ้งลาออกล่วงหน้า_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 });
 
 // ───── go ─────
