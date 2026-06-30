@@ -826,6 +826,23 @@ function renderCharts() {
     labels: [...typeMap.keys()],
     datasets: [{ data: [...typeMap.values()], backgroundColor: ['#ef4444', '#f59e0b', '#94a3b8'], borderWidth: 2, borderColor: '#fff' }]
   }, { cutout: '58%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, font: { size: 11 }, padding: 10 } } } });
+
+  // ───── Drill-down: คลิกกราฟทุกตัว → รายชื่อคนในกลุ่มนั้น ─────
+  const DRILL = {
+    'chart-monthly': { rows: (l, i) => FILTERED.filter(r => monthBucket(r.resign_date) === months[i]), title: l => 'ลาออกเดือน ' + l },
+    'chart-tenure':  { rows: (l, i) => FILTERED.filter(r => { const d = tenureDays(r); return d != null && buckets.findIndex(b => d < b.max) === i; }), title: l => 'อายุงาน ' + l },
+    'chart-team':    { rows: (l) => FILTERED.filter(r => (r.team_lead || '') === (l === '(ไม่ระบุ)' ? '' : l)), title: l => 'ทีม ' + l },
+    'chart-product': { rows: (l) => FILTERED.filter(r => (r.product || '') === l), title: l => 'Product: ' + l },
+    'chart-dept':    { rows: (l) => FILTERED.filter(r => ((r.department || '(ไม่ระบุ)').split(/\s+/).slice(0, 2).join(' ')) === l), title: l => 'แผนก: ' + l },
+    'chart-reason':  { rows: (l) => FILTERED.filter(r => r._type === 'ลาออก' && r._reason === l), title: l => 'เหตุผล: ' + l },
+    'chart-type':    { rows: (l) => FILTERED.filter(r => (r._type || '') === l), title: l => 'ประเภท: ' + l },
+  };
+  for (const id in DRILL) {
+    const c = charts[id]; if (!c) continue;
+    const cfg = DRILL[id];
+    c.options.onClick = (e, els) => { if (!els.length) return; const i = els[0].index; const l = c.data.labels[i]; openDetailModal(cfg.title(l), cfg.rows(l, i)); };
+    c.options.onHover = (e, els) => { if (e.native) e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+  }
 }
 function drawChart(id, type, data, options) {
   if (charts[id]) charts[id].destroy();
@@ -1107,6 +1124,36 @@ function openTeamModal(teamName) {
       <td class="px-4 py-2"><span class="badge bg-rose-50 text-rose-600">${esc(r.product) || '—'}</span></td>
     </tr>`; }).join('') : '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
 
+  document.getElementById('team-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+// modal รายละเอียดทั่วไป — ใช้ร่วมกับคลิกกราฟทุกตัว (drill-down)
+function openDetailModal(title, rows) {
+  modalCurrentTeam = title; modalCurrentRows = rows;
+  setText('modal-title', title);
+  setText('modal-subtitle', `${rows.length.toLocaleString()} คน · ${(rows.length / Math.max(1, FILTERED.length) * 100).toFixed(1)}% ของทั้งหมด`);
+  const products = [...new Set(rows.map(r => r.product).filter(Boolean))];
+  const depts    = [...new Set(rows.map(r => r.department).filter(Boolean))];
+  const ten      = avg(rows.map(tenureMonths));
+  const early    = rows.map(tenureDays).filter(d => d != null && d < 183).length;
+  document.getElementById('modal-stats').innerHTML = `${stat(products.length, 'Product')}${stat(depts.length, 'แผนก')}${stat(fmtYM(ten), 'อายุงานเฉลี่ย')}${stat(early, 'ลาออก < 6 ด.')}`;
+  const sorted = [...rows].sort((a, b) => (b.resign_date || '').localeCompare(a.resign_date || ''));
+  const body = document.getElementById('modal-body');
+  body.innerHTML = sorted.length ? sorted.map((r, i) => {
+    const d = tenureDays(r);
+    const tb = d == null ? 'bg-slate-50 text-slate-400' : 'bg-rose-50 text-rose-600';
+    return `
+    <tr class="${i % 2 ? 'bg-red-50/20' : 'bg-white'} hover:bg-red-50/40 transition">
+      <td class="px-4 py-2 text-slate-400 text-xs">${i + 1}</td>
+      <td class="px-4 py-2 font-mono text-xs text-slate-500">${esc(r.employee_id)}</td>
+      <td class="px-4 py-2 font-medium text-slate-800">${esc(r.full_name)}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.department)}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${esc(r.position)}</td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-rose-50 text-rose-600">${esc(fmtDate(r.start_date))}</span></td>
+      <td class="px-4 py-2 text-xs"><span class="badge bg-red-50 text-red-600">${esc(fmtDate(r.resign_date))}</span></td>
+      <td class="px-4 py-2 text-right text-xs"><span class="badge ${tb}">${fmtTenure(r)}</span></td>
+      <td class="px-4 py-2"><span class="badge bg-rose-50 text-rose-600">${esc(r.product) || '—'}</span></td>
+    </tr>`; }).join('') : '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
   document.getElementById('team-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
