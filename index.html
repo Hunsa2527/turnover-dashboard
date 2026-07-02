@@ -162,6 +162,16 @@
     </div>
   </div>
 
+  <!-- ───── การ์ดจำนวนลาออกรายเดือน ───── -->
+  <div class="anim mt-4" data-section="kpi">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="w-1.5 h-4 rounded-full bg-rose-500"></span>
+      <h3 class="text-sm font-bold text-slate-700">จำนวนลาออกรายเดือน</h3>
+      <span class="text-[11px] text-slate-400">รอบ fiscal (วันที่ 2 – วันที่ 1 เดือนถัดไป) · คลิกการ์ดเพื่อดูรายชื่อ</span>
+    </div>
+    <div id="month-cards" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-7 gap-3"></div>
+  </div>
+
   <!-- ───── Charts & Insights ───── -->
   <div class="space-y-4 anim" data-section="charts">
     <!-- row 1 -->
@@ -713,7 +723,7 @@ function val(id) { return document.getElementById(id).value; }
 // ═══════════════════════════════════════════════════════════════
 //   RENDER
 // ═══════════════════════════════════════════════════════════════
-function render() { renderKPIs(); renderCharts(); renderTeamSummary(); renderBranchSummary(); renderProductSummary(); renderMonthSummary(); renderTable(); }
+function render() { renderKPIs(); renderMonthCards(); renderCharts(); renderTeamSummary(); renderBranchSummary(); renderProductSummary(); renderMonthSummary(); renderTable(); }
 
 function groupCount(rows, key) {
   const m = new Map();
@@ -1105,6 +1115,25 @@ function renderMonthSummary() {
     </tr>`; }).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
   body.querySelectorAll('tr[data-month]').forEach(tr => tr.addEventListener('click', () => openDetailModal('ลาออกเดือน ' + monthLabelTH(tr.dataset.month), FILTERED.filter(r => monthBucket(r.resign_date) === tr.dataset.month))));
   setText('month-total', rows.reduce((s, r) => s + r.count, 0).toLocaleString());
+}
+
+// การ์ดจำนวนลาออกรายเดือน (fiscal) — ตาม filter ปัจจุบัน, คลิกดูรายชื่อ
+function renderMonthCards() {
+  const el = document.getElementById('month-cards');
+  if (!el) return;
+  const cnt = new Map();
+  FILTERED.forEach(r => { const m = monthBucket(r.resign_date); if (m) cnt.set(m, (cnt.get(m) || 0) + 1); });
+  const months = [...cnt.keys()].sort();
+  if (!months.length) { el.innerHTML = '<div class="col-span-full text-center text-slate-400 text-sm py-4">ไม่พบข้อมูล</div>'; return; }
+  const max = Math.max(...months.map(m => cnt.get(m)));
+  el.innerHTML = months.map(m => {
+    const v = cnt.get(m), isMax = v === max;
+    return `<div class="card-hover cursor-pointer rounded-xl p-3 border text-center ${isMax ? 'border-rose-300 bg-rose-50' : 'border-red-100 bg-white'}" data-month="${m}">
+      <div class="text-[11px] text-slate-400 truncate">${monthLabelTH(m)}</div>
+      <div class="text-2xl font-extrabold tabular-nums ${isMax ? 'text-rose-600' : 'text-slate-700'}">${v.toLocaleString()}</div>
+      <div class="text-[10px] text-slate-400">คน${isMax ? ' · สูงสุด' : ''}</div>
+    </div>`; }).join('');
+  el.querySelectorAll('[data-month]').forEach(c => c.addEventListener('click', () => openDetailModal('ลาออกเดือน ' + monthLabelTH(c.dataset.month), FILTERED.filter(r => monthBucket(r.resign_date) === c.dataset.month))));
 }
 
 // ───── Table ─────
