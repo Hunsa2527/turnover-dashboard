@@ -585,7 +585,8 @@ async function loadHeadcount() {
 
 // ───── Exit reason + แจ้งลาออกล่วงหน้า (จาก resign_reason) ─────
 let REASON_BY_ID = {};   // emp_id -> { type, reason }
-let UPCOMING = [];       // คนแจ้งลาออกล่วงหน้า (วันลาออก > วันนี้) — จาก Resignretire ไม่ปนยอดที่ผ่านมา
+let UPCOMING = [];       // คนแจ้งลาออกล่วงหน้า — Resignretire + คนใน dashboard ที่วันลาออกเดือนอนาคต
+let RAW_FUTURE = [];     // คนใน dashboard_data ที่ fiscal month เป็นอนาคต (ยกออกจากยอดผ่านมา → แจ้งล่วงหน้า)
 const RR_EXCLUDE_ID = new Set(["7777771","7777775","7777776","7777777","7777779","7777780","9999999","7777781"]);
 async function loadResignReason() {
   try {
@@ -661,6 +662,15 @@ async function loadData() {
       team_lead:   teamForRow(r[2], r[7]),
     })).filter(r => r.employee_id);
     await loadResignReason();   // แนบเหตุผล/ประเภท + เก็บคนแจ้งลาออกล่วงหน้า (UPCOMING)
+    // ยกคน "วันลาออกเดือนอนาคต" (fiscal month > เดือนปัจจุบัน) ออกจากยอดที่ผ่านมา → รวมเป็นแจ้งล่วงหน้า
+    const curF = monthBucket(new Date().toISOString().slice(0, 10));
+    const isFuture = r => { const m = monthBucket(r.resign_date); return !!(m && curF && m > curF); };
+    RAW_FUTURE = RAW.filter(isFuture);
+    RAW = RAW.filter(r => !isFuture(r));
+    const upIds = new Set(UPCOMING.map(u => u.employee_id));
+    RAW_FUTURE.forEach(r => { if (!upIds.has(r.employee_id)) { upIds.add(r.employee_id);
+      UPCOMING.push({ employee_id: r.employee_id, full_name: r.full_name, department: r.department,
+        type: r._type || 'ลาออก', reason: r._reason || 'ไม่ระบุ', resign_date: r.resign_date }); } });
     renderUpcoming();
     document.getElementById('last-updated').textContent = new Date().toLocaleString('th-TH');
     populateFilters();
@@ -1303,7 +1313,7 @@ function openUpcomingModal() {
   if (!UPCOMING.length) return;
   const sorted = [...UPCOMING].sort((a, b) => (a.resign_date || '').localeCompare(b.resign_date || ''));
   setText('up-title', 'แจ้งลาออกล่วงหน้า');
-  setText('up-subtitle', `${UPCOMING.length.toLocaleString()} คน · วันลาออกเป็นอนาคต (จาก Resignretire)`);
+  setText('up-subtitle', `${UPCOMING.length.toLocaleString()} คน · วันลาออกเป็นอนาคต (ยังไม่นับในยอดที่ผ่านมา)`);
   const byType = {};
   UPCOMING.forEach(u => { byType[u.type] = (byType[u.type] || 0) + 1; });
   document.getElementById('up-stats').innerHTML =
