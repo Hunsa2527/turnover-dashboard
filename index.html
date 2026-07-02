@@ -660,6 +660,7 @@ async function loadData() {
       resign_date: (r[5] || '').trim(),
       product:     (r[6] || '').trim(),
       team_lead:   teamForRow(r[2], r[7]),
+      division:    (r[8] || '').trim(),
     })).filter(r => r.employee_id);
     await loadResignReason();   // แนบเหตุผล/ประเภท + เก็บคนแจ้งลาออกล่วงหน้า (UPCOMING)
     // ยกคน "วันลาออกเดือนอนาคต" (fiscal month > เดือนปัจจุบัน) ออกจากยอดที่ผ่านมา → รวมเป็นแจ้งล่วงหน้า
@@ -1076,28 +1077,51 @@ function renderBranchSummary() {
   setText('branch-total', ranked.reduce((s, r) => s + r.count, 0).toLocaleString());
 }
 
-// ───── Product Summary ─────
+// ───── Product Summary (จัดกลุ่มตามส่วนงาน) ─────
 function renderProductSummary() {
   const body = document.getElementById('product-summary-body');
   if (!body) return;
   const total = FILTERED.length;
-  const m = new Map();
-  FILTERED.forEach(r => { const k = r.product || '(ไม่ระบุ)'; if (!m.has(k)) m.set(k, { count: 0, tenure: [] }); const o = m.get(k); o.count++; o.tenure.push(tenureMonths(r)); });
-  const rows = [...m.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) })).sort((a, b) => b.count - a.count);
-  const maxC = rows.reduce((mx, r) => Math.max(mx, r.count), 0);
-  const ranks = ['bg-amber-100 text-amber-700 ring-1 ring-amber-300','bg-slate-100 text-slate-600 ring-1 ring-slate-300','bg-orange-100 text-orange-700 ring-1 ring-orange-300'];
-  body.innerHTML = rows.length ? rows.map((r, i) => `
-    <tr class="hover:bg-red-50/50 transition cursor-pointer" data-product="${esc(r.name)}">
-      <td class="px-4 py-2"><span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${ranks[i] || 'bg-red-50 text-red-500'}">${i + 1}</span></td>
-      <td class="px-4 py-2"><span class="font-medium text-slate-700">${esc(r.name)}</span></td>
-      <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
-      <td class="px-4 py-2 text-right tabular-nums text-slate-500">${fmtYM(r.ten)}</td>
-      <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
-      <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(maxC ? r.count / maxC * 100 : 0).toFixed(1)}%;background:#e11d48"></div></div></td>
-    </tr>`).join('') : '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+  // group: ส่วนงาน -> product -> {count, tenure}
+  const divs = new Map();
+  FILTERED.forEach(r => {
+    const dv = r.division || '(ไม่ระบุส่วนงาน)';
+    const pk = r.product || '(ไม่ระบุ)';
+    if (!divs.has(dv)) divs.set(dv, new Map());
+    const pm = divs.get(dv);
+    if (!pm.has(pk)) pm.set(pk, { count: 0, tenure: [] });
+    const o = pm.get(pk); o.count++; o.tenure.push(tenureMonths(r));
+  });
+  const divRows = [...divs.entries()].map(([dv, pm]) => {
+    const prods = [...pm.entries()].map(([name, o]) => ({ name, count: o.count, pct: total ? o.count / total * 100 : 0, ten: avg(o.tenure) })).sort((a, b) => b.count - a.count);
+    return { dv, prods, dtotal: prods.reduce((s, p) => s + p.count, 0) };
+  }).sort((a, b) => b.dtotal - a.dtotal);
+  let maxC = 0; divs.forEach(pm => pm.forEach(o => { if (o.count > maxC) maxC = o.count; }));
+  let html = '', pcount = 0;
+  divRows.forEach(({ dv, prods, dtotal }) => {
+    html += `<tr class="bg-rose-50 cursor-pointer" data-div="${esc(dv)}">
+      <td class="px-4 py-2" colspan="2"><span class="font-bold text-rose-700">🗂️ ${esc(dv)}</span> <span class="text-[11px] text-slate-400 font-normal">${prods.length} product</span></td>
+      <td class="px-4 py-2 text-right font-bold tabular-nums text-rose-700">${dtotal.toLocaleString()}</td>
+      <td></td>
+      <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-rose-200/70 text-rose-800">${total ? (dtotal / total * 100).toFixed(1) : 0}%</span></td>
+      <td></td></tr>`;
+    prods.forEach(r => {
+      pcount++;
+      html += `<tr class="hover:bg-red-50/50 transition cursor-pointer" data-product="${esc(r.name)}">
+        <td class="px-4 py-2 text-center text-slate-300">·</td>
+        <td class="px-4 py-2 pl-6"><span class="font-medium text-slate-700">${esc(r.name)}</span></td>
+        <td class="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">${r.count.toLocaleString()}</td>
+        <td class="px-4 py-2 text-right tabular-nums text-slate-500">${fmtYM(r.ten)}</td>
+        <td class="px-4 py-2 text-right tabular-nums"><span class="badge bg-red-100/70 text-red-700">${r.pct.toFixed(1)}%</span></td>
+        <td class="px-4 py-2"><div class="h-2.5 bg-red-50 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(maxC ? r.count / maxC * 100 : 0).toFixed(1)}%;background:#e11d48"></div></div></td>
+      </tr>`;
+    });
+  });
+  body.innerHTML = html || '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
   body.querySelectorAll('tr[data-product]').forEach(tr => tr.addEventListener('click', () => openDetailModal('Product: ' + tr.dataset.product, FILTERED.filter(r => (r.product || '(ไม่ระบุ)') === tr.dataset.product))));
-  setText('product-count', rows.length);
-  setText('product-total', rows.reduce((s, r) => s + r.count, 0).toLocaleString());
+  body.querySelectorAll('tr[data-div]').forEach(tr => tr.addEventListener('click', () => openDetailModal('ส่วนงาน: ' + tr.dataset.div, FILTERED.filter(r => (r.division || '(ไม่ระบุส่วนงาน)') === tr.dataset.div))));
+  setText('product-count', pcount);
+  setText('product-total', total.toLocaleString());
 }
 
 // ───── Month Summary ─────
